@@ -299,6 +299,9 @@ function dropFloating(){
 }
 
 // ===== CONTROLS =====
+// ===== MOBILE + DESKTOP CONTROLS =====
+
+// DESKTOP (unchanged behavior)
 canvas.addEventListener("mousemove",(e)=>{
     let rect=canvas.getBoundingClientRect();
     let mx=e.clientX-rect.left;
@@ -307,6 +310,43 @@ canvas.addEventListener("mousemove",(e)=>{
 });
 
 canvas.addEventListener("click",shoot);
+
+// ===== MOBILE TOUCH =====
+let isTouching = false;
+
+canvas.addEventListener("touchstart",(e)=>{
+    e.preventDefault();
+    isTouching = true;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+
+    let mx = touch.clientX - rect.left;
+    let my = touch.clientY - rect.top;
+
+    shooter.angle = Math.atan2(my - shooter.y, mx - shooter.x);
+
+}, { passive:false });
+
+canvas.addEventListener("touchmove",(e)=>{
+    e.preventDefault();
+    if(!isTouching) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+
+    let mx = touch.clientX - rect.left;
+    let my = touch.clientY - rect.top;
+
+    shooter.angle = Math.atan2(my - shooter.y, mx - shooter.x);
+
+}, { passive:false });
+
+canvas.addEventListener("touchend",(e)=>{
+    e.preventDefault();
+    isTouching = false;
+    shoot(); // shoot when finger released
+}, { passive:false });
 
 // ===== LOOP =====
 function loop(){
