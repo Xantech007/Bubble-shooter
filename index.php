@@ -7,7 +7,7 @@ if (!isset($_SESSION['highscore'])) $_SESSION['highscore'] = 0;
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bubble Shooter Pro Ultimate+</title>
+<title>Bubble Shooter Pro (Stable)</title>
 
 <style>
 body{
@@ -17,11 +17,7 @@ body{
     text-align:center;
     color:#fff;
 }
-
-h1{margin:10px;font-size:20px;}
-
 canvas{
-    background:#000;
     border:3px solid #333;
     border-radius:12px;
     box-shadow:0 0 30px #0ff;
@@ -29,7 +25,6 @@ canvas{
     width:100%;
     max-width:500px;
 }
-
 button{
     padding:10px 15px;
     margin:5px;
@@ -44,7 +39,7 @@ button{
 
 <body>
 
-<h1>🎯 Bubble Shooter Pro+</h1>
+<h2>🎯 Bubble Shooter Pro</h2>
 
 <div>
 Score: <span id="score">0</span> |
@@ -64,7 +59,9 @@ High Score: <span><?php echo $_SESSION['highscore']; ?></span>
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
 
+// ===== BASE SIZE =====
 const BASE_W = 420, BASE_H = 520;
 canvas.width = BASE_W;
 canvas.height = BASE_H;
@@ -100,7 +97,7 @@ let shooter={x:210,y:480,angle:0};
 let current,next;
 let colors=["#ff4d4d","#4dff4d","#4d4dff","#ffff4d","#ff4dff","#4dffff"];
 
-// ===== FX =====
+// ===== EFFECTS =====
 let effects=[];
 let stars=[];
 
@@ -108,7 +105,6 @@ for(let i=0;i<60;i++){
     stars.push({x:Math.random()*BASE_W,y:Math.random()*BASE_H,s:Math.random()*2});
 }
 
-// ===== UTILS =====
 function rand(){return colors[Math.floor(Math.random()*colors.length)];}
 
 // ===== INIT =====
@@ -122,7 +118,7 @@ function init(){
     }
 }
 
-// ===== DRAW BG =====
+// ===== BACKGROUND =====
 function drawBG(){
     ctx.fillStyle="#000";
     ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -214,7 +210,7 @@ function draw(){
     drawFX();
 }
 
-// ===== FX =====
+// ===== EFFECTS =====
 function drawFX(){
     for(let i=effects.length-1;i>=0;i--){
         let e=effects[i];
@@ -227,23 +223,31 @@ function drawFX(){
 // ===== SHOOT =====
 function shoot(){
     if(current.speed||gameOver)return;
-    if(sound){shootS.currentTime=0;shootS.play();}
+
+    if(sound){
+        shootS.currentTime=0;
+        shootS.play().catch(()=>{});
+    }
+
     current.speed=10;
     current.angle=shooter.angle;
 }
 
 // ===== UPDATE =====
 function update(){
-    if(!current||!current.speed)return;
+    if(!current || !current.speed) return;
 
-    current.x+=Math.cos(current.angle)*current.speed;
-    current.y+=Math.sin(current.angle)*current.speed;
+    current.x += Math.cos(current.angle)*current.speed;
+    current.y += Math.sin(current.angle)*current.speed;
 
-    if(current.x<SIZE||current.x>canvas.width-SIZE){
-        current.angle=Math.PI-current.angle;
+    if(current.x < SIZE || current.x > canvas.width-SIZE){
+        current.angle = Math.PI - current.angle;
     }
 
-    if(current.y<40) place();
+    if(current.y < 40){
+        place();
+        return;
+    }
 
     for(let r=0;r<ROWS;r++){
         for(let c=0;c<COLS;c++){
@@ -251,19 +255,23 @@ function update(){
                 let dx=current.x-(c*45+40);
                 let dy=current.y-(r*45+40);
                 if(Math.sqrt(dx*dx+dy*dy)<SIZE*2){
-                    place();return;
+                    place();
+                    return;
                 }
             }
         }
     }
 }
 
-// ===== PLACE =====
+// ===== PLACE (FIXED) =====
 function place(){
     let col=Math.round((current.x-40)/45);
     let row=Math.round((current.y-40)/45);
 
-    if(!grid[row])return;
+    col = Math.max(0, Math.min(COLS-1, col));
+    row = Math.max(0, Math.min(ROWS-1, row));
+
+    if(!grid[row]) return;
 
     grid[row][col]=current.color;
 
@@ -277,23 +285,26 @@ function place(){
 
 // ===== MATCH =====
 function match(r,c){
-    let col=grid[r][c];
+    let color=grid[r][c];
     let stack=[[r,c]],seen={},m=[];
 
     while(stack.length){
         let [y,x]=stack.pop();
         let k=y+"_"+x;
-        if(seen[k])continue;
-        seen[k]=1;
+        if(seen[k]) continue;
+        seen[k]=true;
 
-        if(grid[y]&&grid[y][x]==col){
+        if(grid[y] && grid[y][x] === color){
             m.push([y,x]);
             [[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>stack.push([y+d[0],x+d[1]]));
         }
     }
 
     if(m.length>=3){
-        if(sound){popS.currentTime=0;popS.play();}
+        if(sound){
+            popS.currentTime=0;
+            popS.play().catch(()=>{});
+        }
 
         m.forEach(([y,x])=>{
             effects.push({x:x*45+40,y:y*45+40,life:20});
@@ -302,6 +313,7 @@ function match(r,c){
 
         score+=m.length*10;
         scoreEl.innerText=score;
+
         drop();
     }
 }
@@ -312,8 +324,8 @@ function drop(){
 
     function dfs(r,c){
         let k=r+"_"+c;
-        if(vis[k]||!grid[r]||!grid[r][c])return;
-        vis[k]=1;
+        if(vis[k]||!grid[r]||!grid[r][c]) return;
+        vis[k]=true;
         [[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>dfs(r+d[0],c+d[1]));
     }
 
@@ -321,7 +333,7 @@ function drop(){
 
     for(let r=0;r<ROWS;r++){
         for(let c=0;c<COLS;c++){
-            if(grid[r][c]&&!vis[r+"_"+c]){
+            if(grid[r][c] && !vis[r+"_"+c]){
                 grid[r][c]=null;
                 score+=5;
             }
@@ -329,7 +341,7 @@ function drop(){
     }
 }
 
-// ===== INPUT (SCALED) =====
+// ===== INPUT =====
 function pos(e){
     let r=canvas.getBoundingClientRect();
     return {
@@ -346,27 +358,32 @@ canvas.addEventListener("mousemove",e=>{
 canvas.addEventListener("click",shoot);
 
 // MOBILE
-let t=false;
+let touching=false;
 canvas.addEventListener("touchstart",e=>{
-    e.preventDefault();t=true;
+    e.preventDefault();
+    touching=true;
     let p=pos(e.touches[0]);
     shooter.angle=Math.atan2(p.y-shooter.y,p.x-shooter.x);
 },{passive:false});
 
 canvas.addEventListener("touchmove",e=>{
-    e.preventDefault();if(!t)return;
+    e.preventDefault();
+    if(!touching) return;
     let p=pos(e.touches[0]);
     shooter.angle=Math.atan2(p.y-shooter.y,p.x-shooter.x);
 },{passive:false});
 
 canvas.addEventListener("touchend",e=>{
-    e.preventDefault();t=false;shoot();
+    e.preventDefault();
+    touching=false;
+    shoot();
 },{passive:false});
 
 // ===== LOOP =====
 function loop(){
     if(!gameOver){
-        update();draw();
+        update();
+        draw();
     }else{
         ctx.fillStyle="rgba(0,0,0,0.8)";
         ctx.fillRect(0,0,canvas.width,canvas.height);
