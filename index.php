@@ -1,30 +1,14 @@
 <?php
-require_once "config/database.php";
-
-$db = new Database();
-$conn = $db->connect();
+include "inc/header.php";
+include "inc/navbar.php";
 
 // fetch active games
 $stmt = $conn->prepare("SELECT * FROM games WHERE status = 1 ORDER BY id DESC");
 $stmt->execute();
-$games = $stmt->fetchAll();
+$games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Game Center</title>
-
 <style>
-body{
-    margin:0;
-    font-family:Arial;
-    background:#111;
-    color:#fff;
-    text-align:center;
-}
-
 h1{
     margin:20px;
 }
@@ -68,22 +52,38 @@ h1{
     border-radius:5px;
     font-weight:bold;
 }
-</style>
-</head>
 
-<body>
+.notice{
+    margin:10px;
+    font-size:14px;
+    color:#aaa;
+}
+</style>
 
 <h1>🎮 Game Center</h1>
 
-<div class="grid">
-<?php foreach($games as $game): ?>
-    <div class="card">
-        <img src="<?php echo $game['thumbnail']; ?>" alt="">
-        <h3><?php echo $game['name']; ?></h3>
-        <a class="play-btn" href="<?php echo $game['file_path']; ?>">Play</a>
-    </div>
-<?php endforeach; ?>
+<div class="notice">
+    💰 Play games to earn <?php echo htmlspecialchars($currency); ?>. Login to claim your rewards.
 </div>
 
-</body>
-</html>
+<div class="grid">
+
+<?php if(count($games) > 0): ?>
+    <?php foreach($games as $game): ?>
+        <div class="card">
+            <img src="<?php echo htmlspecialchars($game['thumbnail']); ?>" alt="">
+            <h3><?php echo htmlspecialchars($game['name']); ?></h3>
+
+            <a class="play-btn" href="<?php echo htmlspecialchars($game['file_path']); ?>">
+                ▶ Play
+            </a>
+        </div>
+    <?php endforeach; ?>
+
+<?php else: ?>
+    <p>No games available yet.</p>
+<?php endif; ?>
+
+</div>
+
+<?php include "inc/footer.php"; ?>
