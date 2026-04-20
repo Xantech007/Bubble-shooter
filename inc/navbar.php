@@ -9,38 +9,37 @@ $current_page = basename($_SERVER['PHP_SELF']);
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:15px 25px;
+    padding:12px 20px;
     background:#fff;
     border-bottom:1px solid #eaeaea;
     box-shadow:0 2px 10px rgba(0,0,0,0.05);
     flex-wrap:wrap;
-    position:relative;
+    gap:10px;
 }
 
 .nav-left{
     font-size:18px;
     font-weight:bold;
     color:#00aaff;
-}
-
-.nav-toggle{
-    display:none;
-    font-size:22px;
-    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:8px;
 }
 
 .nav-right{
     display:flex;
     align-items:center;
-    gap:15px;
+    gap:12px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
 }
 
-/* links */
 .navbar a{
     text-decoration:none;
     color:#333;
     font-weight:500;
     transition:0.2s;
+    white-space:nowrap;
 }
 
 .navbar a:hover{
@@ -53,45 +52,23 @@ $current_page = basename($_SERVER['PHP_SELF']);
     border-radius:20px;
     font-size:14px;
     color:#0077aa;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
 }
 
-/* MOBILE */
-@media (max-width:768px){
-
-    .nav-toggle{
-        display:block;
+/* MOBILE OPTIMIZATION */
+@media (max-width: 768px){
+    .navbar{
+        flex-direction:column;
+        align-items:flex-start;
     }
 
     .nav-right{
-        display:none;
         width:100%;
-        flex-direction:column;
-        align-items:flex-start;
-        gap:12px;
-        margin-top:15px;
-        padding-top:10px;
-        border-top:1px solid #eee;
-    }
-
-    .nav-right.active{
-        display:flex;
-    }
-
-    .nav-right a,
-    .nav-right span{
-        width:100%;
-        padding:10px 0;
-    }
-
-    /* ensure wallet sits directly above logout */
-    .balance{
-        order:1;
-        width:100%;
-    }
-
-    .nav-right a[href*="logout"]{
-        order:2;
-        width:100%;
+        justify-content:flex-start;
+        gap:10px;
     }
 }
 </style>
@@ -103,12 +80,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <?php echo htmlspecialchars($site_name); ?>
     </div>
 
-    <div class="nav-toggle" onclick="document.querySelector('.nav-right').classList.toggle('active')">
-        <i class="fa-solid fa-bars"></i>
-    </div>
-
     <div class="nav-right">
 
+        <!-- HOME -->
         <?php if($current_page !== 'index.php'): ?>
             <a href="/index.php">
                 <i class="fa-solid fa-house"></i> Home
@@ -117,17 +91,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
         <?php if(isset($_SESSION['user_id'])): ?>
 
-            <span class="balance">
-                <i class="fa-solid fa-wallet"></i>
-                <?php echo $currency . " " . number_format($_SESSION['balance'],2); ?>
-            </span>
-
+            <!-- DASHBOARD -->
             <?php if($current_page !== 'dashboard.php'): ?>
                 <a href="/dashboard.php">
                     <i class="fa-solid fa-chart-line"></i> Dashboard
                 </a>
             <?php endif; ?>
 
+            <!-- WALLET (FORCED BEFORE LOGOUT) -->
+            <span class="balance">
+                <i class="fa-solid fa-wallet"></i>
+                <?php echo $currency . " " . number_format($_SESSION['balance'],2); ?>
+            </span>
+
+            <!-- LOGOUT -->
             <a href="/logout.php">
                 <i class="fa-solid fa-right-from-bracket"></i> Logout
             </a>
