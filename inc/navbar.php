@@ -56,9 +56,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
     <div class="nav-right">
 
-        <a href="/index.php">
-            <i class="fa-solid fa-house"></i> Home
-        </a>
+        <!-- HOME (hide if already on index.php) -->
+        <?php if($current_page !== 'index.php'): ?>
+            <a href="/index.php">
+                <i class="fa-solid fa-house"></i> Home
+            </a>
+        <?php endif; ?>
 
         <?php if(isset($_SESSION['user_id'])): ?>
 
@@ -67,6 +70,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <?php echo $currency . " " . number_format($_SESSION['balance'],2); ?>
             </span>
 
+            <!-- DASHBOARD (hide if already there) -->
             <?php if($current_page !== 'dashboard.php'): ?>
                 <a href="/dashboard.php">
                     <i class="fa-solid fa-chart-line"></i> Dashboard
