@@ -60,6 +60,22 @@ let obstacles = [];
 let roadY = 0;
 let bgY = 0;
 
+// ===== SAFE IMAGE LOAD =====
+let carImg = new Image();
+let carLoaded = false;
+let carFailed = false;
+
+carImg.src = "../assets/images/player.png";
+
+carImg.onload = () => {
+    carLoaded = true;
+};
+
+carImg.onerror = () => {
+    console.warn("Car image failed to load, using fallback.");
+    carFailed = true;
+};
+
 // ===== BACKGROUND =====
 function drawBackground(){
     bgY += speed * 0.3;
@@ -68,7 +84,6 @@ function drawBackground(){
     ctx.fillStyle = "#050505";
     ctx.fillRect(0,0,400,600);
 
-    // fake buildings
     ctx.fillStyle = "#222";
     for(let i=0;i<10;i++){
         let x = i*40;
@@ -96,9 +111,16 @@ function drawRoad(){
     if(roadY > 40) roadY = 0;
 }
 
-// ===== CAR (UPGRADED LOOK) =====
+// ===== CAR (SAFE DRAW) =====
 function drawCar(x,y){
-    // body
+
+    // ✅ If image loaded → use it
+    if(carLoaded){
+        ctx.drawImage(carImg, x, y, car.w, car.h);
+        return;
+    }
+
+    // ❌ If failed OR not loaded → fallback
     let g = ctx.createLinearGradient(x,y,x,y+70);
     g.addColorStop(0,"#00f");
     g.addColorStop(1,"#00ffcc");
@@ -106,14 +128,8 @@ function drawCar(x,y){
     ctx.fillStyle = g;
     ctx.fillRect(x,y,40,70);
 
-    // windows
     ctx.fillStyle="#111";
     ctx.fillRect(x+5,y+10,30,20);
-
-    // headlights
-    ctx.fillStyle="yellow";
-    ctx.fillRect(x+5,y,5,5);
-    ctx.fillRect(x+30,y,5,5);
 }
 
 // ===== OBSTACLES =====
@@ -133,7 +149,6 @@ function drawObstacles(){
 
         ctx.fillRect(o.x,o.y,o.w,o.h);
 
-        // collision
         if(
             car.x < o.x + o.w &&
             car.x + car.w > o.x &&
@@ -187,7 +202,6 @@ function draw(){
     drawCar(car.x,car.y);
     drawObstacles();
 
-    // nitro overlay
     if(nitro){
         ctx.fillStyle="rgba(0,255,255,0.2)";
         ctx.fillRect(0,0,400,600);
