@@ -13,10 +13,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
     background:#fff;
     border-bottom:1px solid #eaeaea;
     box-shadow:0 2px 10px rgba(0,0,0,0.05);
-    flex-wrap:wrap;
-    gap:10px;
+    position:relative;
 }
 
+/* LEFT */
 .nav-left{
     font-size:18px;
     font-weight:bold;
@@ -26,15 +26,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
     gap:8px;
 }
 
+/* RIGHT (desktop default) */
 .nav-right{
     display:flex;
     align-items:center;
     gap:12px;
-    flex-wrap:wrap;
-    justify-content:flex-end;
 }
 
-.navbar a{
+/* LINKS */
+.nav-right a{
     text-decoration:none;
     color:#333;
     font-weight:500;
@@ -42,10 +42,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
     white-space:nowrap;
 }
 
-.navbar a:hover{
+.nav-right a:hover{
     color:#00aaff;
 }
 
+/* WALLET */
 .balance{
     background:#eaf6ff;
     padding:6px 12px;
@@ -58,17 +59,41 @@ $current_page = basename($_SERVER['PHP_SELF']);
     white-space:nowrap;
 }
 
-/* MOBILE OPTIMIZATION */
+/* HAMBURGER */
+.menu-toggle{
+    display:none;
+    font-size:22px;
+    cursor:pointer;
+}
+
+/* MOBILE */
 @media (max-width: 768px){
-    .navbar{
-        flex-direction:column;
-        align-items:flex-start;
+
+    .menu-toggle{
+        display:block;
     }
 
     .nav-right{
+        display:none;
+        position:absolute;
+        top:60px;
+        right:0;
+        left:0;
+        background:#fff;
+        flex-direction:column;
+        padding:15px;
+        gap:15px;
+        box-shadow:0 5px 15px rgba(0,0,0,0.1);
+        z-index:999;
+    }
+
+    .nav-right.show{
+        display:flex;
+    }
+
+    .nav-right a,
+    .balance{
         width:100%;
-        justify-content:flex-start;
-        gap:10px;
     }
 }
 </style>
@@ -80,7 +105,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <?php echo htmlspecialchars($site_name); ?>
     </div>
 
-    <div class="nav-right">
+    <!-- HAMBURGER -->
+    <div class="menu-toggle" onclick="toggleMenu()">
+        <i class="fa-solid fa-bars"></i>
+    </div>
+
+    <div class="nav-right" id="navMenu">
 
         <!-- HOME -->
         <?php if($current_page !== 'index.php'): ?>
@@ -98,7 +128,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </a>
             <?php endif; ?>
 
-            <!-- WALLET (FORCED BEFORE LOGOUT) -->
+            <!-- WALLET (always before logout) -->
             <span class="balance">
                 <i class="fa-solid fa-wallet"></i>
                 <?php echo $currency . " " . number_format($_SESSION['balance'],2); ?>
@@ -122,5 +152,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <?php endif; ?>
 
     </div>
-
 </div>
+
+<script>
+function toggleMenu(){
+    document.getElementById("navMenu").classList.toggle("show");
+}
+</script>
