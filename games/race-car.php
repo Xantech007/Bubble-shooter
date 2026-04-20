@@ -41,27 +41,45 @@ Score: <span id="score">0</span>
 <br>
 <button onclick="restartGame()">Restart</button>
 
-<audio id="engine" src="sounds/engine.mp3" loop></audio>
-<audio id="crash" src="sounds/crash.mp3"></audio>
-<audio id="music" src="sounds/music.mp3" loop></audio>
-<audio id="nitroS" src="sounds/nitro.mp3"></audio>
+<!-- SOUNDS -->
+<audio id="engine" src="../sounds/engine.mp3" loop></audio>
+<audio id="crash" src="../sounds/crash.mp3"></audio>
+<audio id="music" src="../sounds/music.mp3" loop></audio>
+<audio id="nitroS" src="../sounds/nitro.mp3"></audio>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
 
-// ===== LOAD IMAGES =====
-const playerImg = new Image();
-playerImg.src = "assets/images/player.png";
+// ===== IMAGE PRELOADER =====
+const images = {};
+let loaded = 0;
+const totalImages = 4;
 
-const enemyImg = new Image();
-enemyImg.src = "assets/images/enemy.png";
+function loadImage(name, src){
+    const img = new Image();
+    img.src = src;
 
-const roadImg = new Image();
-roadImg.src = "assets/images/road.png";
+    img.onload = () => {
+        loaded++;
+        if(loaded === totalImages){
+            startGame();
+        }
+    };
 
-const cityImg = new Image();
-cityImg.src = "assets/images/city.png";
+    img.onerror = () => {
+        console.error("Failed to load:", src);
+    };
+
+    images[name] = img;
+}
+
+// LOAD IMAGES (IMPORTANT PATHS)
+loadImage("player", "../assets/images/player.png");
+loadImage("enemy", "../assets/images/enemy.png");
+loadImage("road", "../assets/images/road.png");
+loadImage("city", "../assets/images/city.png");
 
 // ===== SOUND =====
 const engine = document.getElementById("engine");
@@ -78,21 +96,22 @@ document.addEventListener("click",()=>{
 },{once:true});
 
 // ===== GAME STATE =====
-let score=0,speed=4,gameOver=false,shake=0;
+let score=0, speed=4, gameOver=false, shake=0;
 let nitro=false;
 
 let car={x:180,y:500,w:40,h:70};
 let obstacles=[];
 let roadY=0;
 let bgY=0;
+let keys={};
 
 // ===== DRAW BACKGROUND =====
 function drawBG(){
     bgY += speed*0.3;
     if(bgY > 600) bgY = 0;
 
-    ctx.drawImage(cityImg,0,bgY-600,400,600);
-    ctx.drawImage(cityImg,0,bgY,400,600);
+    ctx.drawImage(images.city,0,bgY-600,400,600);
+    ctx.drawImage(images.city,0,bgY,400,600);
 }
 
 // ===== DRAW ROAD =====
@@ -100,20 +119,19 @@ function drawRoad(){
     roadY += speed;
     if(roadY > 600) roadY = 0;
 
-    ctx.drawImage(roadImg,100,roadY-600,200,600);
-    ctx.drawImage(roadImg,100,roadY,200,600);
+    ctx.drawImage(images.road,100,roadY-600,200,600);
+    ctx.drawImage(images.road,100,roadY,200,600);
 }
 
 // ===== DRAW CAR =====
 function drawCar(){
-    ctx.drawImage(playerImg,car.x,car.y,car.w,car.h);
+    ctx.drawImage(images.player,car.x,car.y,car.w,car.h);
 }
 
 // ===== OBSTACLES =====
 function spawnObstacle(){
     let lane=Math.floor(Math.random()*3);
     let x=120+lane*60;
-
     obstacles.push({x:x,y:-80,w:40,h:70});
 }
 
@@ -122,7 +140,7 @@ function drawObstacles(){
         let o=obstacles[i];
         o.y += speed;
 
-        ctx.drawImage(enemyImg,o.x,o.y,o.w,o.h);
+        ctx.drawImage(images.enemy,o.x,o.y,o.w,o.h);
 
         // collision
         if(
@@ -160,13 +178,24 @@ function update(){
     if(Math.random()<0.03) spawnObstacle();
 
     score++;
-    document.getElementById("score").innerText=score;
+    scoreEl.innerText = score;
 
     engine.playbackRate = 1 + speed/10;
 }
 
 // ===== DRAW =====
 function draw(){
+
+    // loading screen
+    if(loaded < totalImages){
+        ctx.fillStyle="#000";
+        ctx.fillRect(0,0,400,600);
+        ctx.fillStyle="#fff";
+        ctx.font="20px Arial";
+        ctx.fillText("Loading...",140,300);
+        return;
+    }
+
     ctx.save();
 
     if(shake>0){
@@ -204,8 +233,12 @@ function loop(){
     requestAnimationFrame(loop);
 }
 
+// ===== START AFTER LOAD =====
+function startGame(){
+    loop();
+}
+
 // ===== CONTROLS =====
-let keys={};
 document.addEventListener("keydown",e=>{
     keys[e.key]=true;
     if(e.key===" ") nitro=true;
@@ -233,9 +266,6 @@ function restartGame(){
     obstacles=[];
     car.x=180;
 }
-
-// START
-loop();
 </script>
 
 </body>
