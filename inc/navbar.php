@@ -1,22 +1,94 @@
+<?php
+$current_page = basename($_SERVER['PHP_SELF']);
+?>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+.navbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:15px 25px;
+    background:#ffffff;
+    border-bottom:1px solid #eaeaea;
+    box-shadow:0 2px 10px rgba(0,0,0,0.05);
+}
+
+.nav-left{
+    font-size:18px;
+    font-weight:bold;
+    color:#00aaff;
+}
+
+.nav-right{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.navbar a{
+    text-decoration:none;
+    color:#333;
+    font-weight:500;
+    transition:0.2s;
+}
+
+.navbar a:hover{
+    color:#00aaff;
+}
+
+.balance{
+    background:#eaf6ff;
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:14px;
+    color:#0077aa;
+}
+</style>
+
 <div class="navbar">
 
-    <div>
-        <strong><?php echo htmlspecialchars($site_name); ?></strong>
+    <div class="nav-left">
+        <i class="fa-solid fa-gamepad"></i>
+        <?php echo htmlspecialchars($site_name); ?>
     </div>
 
-    <div>
-        <a href="/index.php">Home</a>
+    <div class="nav-right">
+
+        <a href="/index.php">
+            <i class="fa-solid fa-house"></i> Home
+        </a>
 
         <?php if(isset($_SESSION['user_id'])): ?>
-            <span style="margin-left:15px;">
-                💰 <?php echo $currency . " " . number_format($_SESSION['balance'],2); ?>
+
+            <span class="balance">
+                <i class="fa-solid fa-wallet"></i>
+                <?php echo $currency . " " . number_format($_SESSION['balance'],2); ?>
             </span>
-            <a href="/dashboard.php">Dashboard</a>
-            <a href="/logout.php">Logout</a>
+
+            <?php if($current_page !== 'dashboard.php'): ?>
+                <a href="/dashboard.php">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+            <?php endif; ?>
+
+            <a href="/logout.php">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </a>
+
         <?php else: ?>
-            <a href="/login.php">Login</a>
-            <a href="/register.php">Register</a>
+
+            <a href="/login.php">
+                <i class="fa-solid fa-user"></i> Login
+            </a>
+
+            <a href="/register.php">
+                <i class="fa-solid fa-user-plus"></i> Register
+            </a>
+
         <?php endif; ?>
+
     </div>
 
 </div>
