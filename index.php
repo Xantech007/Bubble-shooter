@@ -179,7 +179,7 @@
         <div class="card">
             <h3><i class="fa-solid fa-bullseye"></i> Bubble Shooter</h3>
             <p>Match bubbles and clear levels.</p>
-            <a href="games/bubble.php" class="btn">Play</a>
+            <a href="games/bubble-shooter.php" class="btn">Play</a>
         </div>
     </div>
 </div>
