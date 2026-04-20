@@ -7,29 +7,9 @@
 <title>Mini Race Car Pro</title>
 
 <style>
-body{
-    margin:0;
-    background:#000;
-    font-family:Arial;
-    text-align:center;
-    color:#fff;
-}
-canvas{
-    background:#111;
-    border:3px solid #333;
-    border-radius:10px;
-    width:100%;
-    max-width:400px;
-    touch-action:none;
-}
-button{
-    padding:10px;
-    margin:10px;
-    border:none;
-    border-radius:5px;
-    background:#00c3ff;
-    font-weight:bold;
-}
+body{margin:0;background:#000;font-family:Arial;text-align:center;color:#fff;}
+canvas{background:#111;border:3px solid #333;border-radius:10px;width:100%;max-width:400px;touch-action:none;}
+button{padding:10px;margin:10px;border:none;border-radius:5px;background:#00c3ff;font-weight:bold;}
 </style>
 </head>
 
@@ -47,47 +27,41 @@ Score: <span id="score">0</span>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let score = 0;
-let speed = 4;
-let gameOver = false;
-let shake = 0;
-let nitro = false;
+let score=0,speed=4,gameOver=false,shake=0,nitro=false;
 
-let car = { x:180, y:500, w:40, h:70 };
-let keys = {};
-let obstacles = [];
+let car={x:180,y:500,w:40,h:70};
+let keys={},obstacles=[];
+let roadY=0,bgY=0;
 
-let roadY = 0;
-let bgY = 0;
+// ===== SAFE IMAGE LOADER =====
+function loadImg(src){
+    let img=new Image();
+    img.src=src;
+    img.loaded=false;
+    img.failed=false;
 
-// ===== SAFE IMAGE LOAD =====
-let carImg = new Image();
-let carLoaded = false;
-let carFailed = false;
+    img.onload=()=>img.loaded=true;
+    img.onerror=()=>img.failed=true;
 
-carImg.src = "../assets/images/player.png";
+    return img;
+}
 
-carImg.onload = () => {
-    carLoaded = true;
-};
-
-carImg.onerror = () => {
-    console.warn("Car image failed to load, using fallback.");
-    carFailed = true;
-};
+const playerImg = loadImg("../assets/images/player.png");
+const enemyImg  = loadImg("../assets/images/enemy.png");
+const truckImg  = loadImg("../assets/images/truck.png");
 
 // ===== BACKGROUND =====
 function drawBackground(){
-    bgY += speed * 0.3;
-    if(bgY > 600) bgY = 0;
+    bgY += speed*0.3;
+    if(bgY>600) bgY=0;
 
-    ctx.fillStyle = "#050505";
+    ctx.fillStyle="#050505";
     ctx.fillRect(0,0,400,600);
 
-    ctx.fillStyle = "#222";
+    ctx.fillStyle="#222";
     for(let i=0;i<10;i++){
-        let x = i*40;
-        let h = Math.sin(i+bgY*0.01)*50 + 100;
+        let x=i*40;
+        let h=Math.sin(i+bgY*0.01)*50+100;
         ctx.fillRect(x,600-h,30,h);
     }
 }
@@ -102,61 +76,88 @@ function drawRoad(){
 
     for(let i=0;i<600;i+=40){
         ctx.beginPath();
-        ctx.moveTo(200, i+roadY);
-        ctx.lineTo(200, i+20+roadY);
+        ctx.moveTo(200,i+roadY);
+        ctx.lineTo(200,i+20+roadY);
         ctx.stroke();
     }
 
-    roadY += speed;
-    if(roadY > 40) roadY = 0;
+    roadY+=speed;
+    if(roadY>40) roadY=0;
 }
 
-// ===== CAR (SAFE DRAW) =====
-function drawCar(x,y){
-
-    // ✅ If image loaded → use it
-    if(carLoaded){
-        ctx.drawImage(carImg, x, y, car.w, car.h);
-        return;
+// ===== PLAYER =====
+function drawPlayer(){
+    if(playerImg.loaded){
+        ctx.drawImage(playerImg,car.x,car.y,car.w,car.h);
+    }else{
+        ctx.fillStyle="#00ffcc";
+        ctx.fillRect(car.x,car.y,car.w,car.h);
     }
-
-    // ❌ If failed OR not loaded → fallback
-    let g = ctx.createLinearGradient(x,y,x,y+70);
-    g.addColorStop(0,"#00f");
-    g.addColorStop(1,"#00ffcc");
-
-    ctx.fillStyle = g;
-    ctx.fillRect(x,y,40,70);
-
-    ctx.fillStyle="#111";
-    ctx.fillRect(x+5,y+10,30,20);
 }
 
-// ===== OBSTACLES =====
+// ===== SPAWN (FAIR SYSTEM) =====
+let lastSpawnTime = 0;
+
 function spawnObstacle(){
-    let lane = Math.floor(Math.random()*3);
+    let now = Date.now();
+
+    // prevent too frequent spawn
+    if(now - lastSpawnTime < 800) return;
+
+    let lanes = [0,1,2];
+
+    // remove lanes already occupied near top
+    obstacles.forEach(o=>{
+        if(o.y < 200){
+            let lane = Math.floor((o.x-120)/60);
+            lanes = lanes.filter(l=>l !== lane);
+        }
+    });
+
+    // always leave at least 1 lane free
+    if(lanes.length <= 1) return;
+
+    let lane = lanes[Math.floor(Math.random()*lanes.length)];
     let x = 120 + lane*60;
 
-    obstacles.push({ x:x, y:-80, w:40, h:70 });
+    let isTruck = Math.random() < 0.3;
+
+    obstacles.push({
+        x:x,
+        y:-100,
+        w:40,
+        h:isTruck ? 110 : 70,
+        type:isTruck ? "truck" : "car"
+    });
+
+    lastSpawnTime = now;
 }
 
+// ===== DRAW OBSTACLES =====
 function drawObstacles(){
-    ctx.fillStyle="#ff4444";
-
     for(let i=0;i<obstacles.length;i++){
         let o = obstacles[i];
         o.y += speed;
 
-        ctx.fillRect(o.x,o.y,o.w,o.h);
+        // draw image if available
+        if(o.type==="truck" && truckImg.loaded){
+            ctx.drawImage(truckImg,o.x,o.y,o.w,o.h);
+        }else if(o.type==="car" && enemyImg.loaded){
+            ctx.drawImage(enemyImg,o.x,o.y,o.w,o.h);
+        }else{
+            ctx.fillStyle = o.type==="truck" ? "#ffaa00" : "#ff4444";
+            ctx.fillRect(o.x,o.y,o.w,o.h);
+        }
 
+        // collision
         if(
             car.x < o.x + o.w &&
             car.x + car.w > o.x &&
             car.y < o.y + o.h &&
             car.y + car.h > o.y
         ){
-            gameOver = true;
-            shake = 20;
+            gameOver=true;
+            shake=20;
         }
     }
 
@@ -178,7 +179,7 @@ function update(){
 
     car.x = Math.max(110, Math.min(250, car.x));
 
-    if(Math.random() < 0.025){
+    if(Math.random() < 0.03){
         spawnObstacle();
     }
 
@@ -190,8 +191,8 @@ function update(){
 function draw(){
     ctx.save();
 
-    if(shake > 0){
-        ctx.translate(Math.random()*shake-shake/2, Math.random()*shake-shake/2);
+    if(shake>0){
+        ctx.translate(Math.random()*shake-shake/2,Math.random()*shake-shake/2);
         shake--;
     }
 
@@ -199,7 +200,7 @@ function draw(){
 
     drawBackground();
     drawRoad();
-    drawCar(car.x,car.y);
+    drawPlayer();
     drawObstacles();
 
     if(nitro){
@@ -210,7 +211,6 @@ function draw(){
     if(gameOver){
         ctx.fillStyle="rgba(0,0,0,0.7)";
         ctx.fillRect(0,0,400,600);
-
         ctx.fillStyle="#fff";
         ctx.font="28px Arial";
         ctx.fillText("CRASH!",130,280);
@@ -228,21 +228,20 @@ function loop(){
 
 // ===== CONTROLS =====
 document.addEventListener("keydown",e=>{
-    keys[e.key] = true;
-    if(e.key === " ") nitro = true;
+    keys[e.key]=true;
+    if(e.key===" ") nitro=true;
 });
-
 document.addEventListener("keyup",e=>{
-    keys[e.key] = false;
-    if(e.key === " ") nitro = false;
+    keys[e.key]=false;
+    if(e.key===" ") nitro=false;
 });
 
 // MOBILE
 canvas.addEventListener("touchmove",e=>{
     e.preventDefault();
-    let rect = canvas.getBoundingClientRect();
-    let x = e.touches[0].clientX - rect.left;
-    car.x = x - 20;
+    let rect=canvas.getBoundingClientRect();
+    let x=e.touches[0].clientX-rect.left;
+    car.x = x-20;
 },{passive:false});
 
 canvas.addEventListener("touchstart",()=>nitro=true);
@@ -250,11 +249,11 @@ canvas.addEventListener("touchend",()=>nitro=false);
 
 // ===== RESTART =====
 function restartGame(){
-    score = 0;
-    speed = 4;
-    gameOver = false;
-    car.x = 180;
-    obstacles = [];
+    score=0;
+    speed=4;
+    gameOver=false;
+    car.x=180;
+    obstacles=[];
 }
 
 // START
