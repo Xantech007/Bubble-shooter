@@ -162,6 +162,11 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 
 <div class="profile-box">
 
+<?php if (isset($_SESSION['success_message'])): ?>
+    <div class="success"><?php echo $_SESSION['success_message']; ?></div>
+    <?php unset($_SESSION['success_message']); ?>
+<?php endif; ?>
+    
 <h2><i class="fa-solid fa-user"></i> My Profile</h2>
 
 <?php if($success): ?>
