@@ -197,12 +197,12 @@
         <div class="hero-text">
             <h1>
                 <i class="fa-solid fa-gamepad icon-blue"></i> 
-                Play Games & Earn Real Cash
+                Play Games & Earn Real Money
             </h1>
             <p>
-                Welcome to the most exciting play-to-earn platform! Enjoy addictive skill-based games, 
-                compete with players worldwide, and turn your gaming time into real money. 
-                Fast payouts, secure transactions, and non-stop fun await you.
+                Join the ultimate play-to-earn platform available in the USA and Europe. 
+                Enjoy high-quality skill-based games, compete with players worldwide, 
+                and turn your gaming sessions into real cash rewards. Fast, secure, and fun!
             </p>
             <br>
             <a href="games.php" class="btn btn-primary">
@@ -215,7 +215,7 @@
             <?php endif; ?>
         </div>
         <div class="hero-img">
-            <img src="assets/images/hero.png" alt="Play and Earn">
+            <img src="assets/images/hero.png" alt="Play Games and Earn Money">
         </div>
     </div>
 
@@ -226,44 +226,44 @@
             <div class="step">
                 <i class="fa-solid fa-gamepad icon-blue"></i>
                 <h3>1. Play Games</h3>
-                <p>Choose from a wide variety of fun, skill-based games. No downloads required – play directly in your browser.</p>
+                <p>Browse our collection of fun, browser-based games. No downloads needed – just play instantly on desktop or mobile.</p>
             </div>
             <div class="step">
                 <i class="fa-solid fa-coins icon-yellow"></i>
-                <h3>2. Earn Rewards</h3>
-                <p>Earn <?php echo $currency; ?> based on your playing time, score, and performance. The better you play, the more you earn.</p>
+                <h3>2. Earn Real Money</h3>
+                <p>Earn $ based on your playtime, skill level, and performance. The more you play and the better you perform, the higher your rewards.</p>
             </div>
             <div class="step">
                 <i class="fa-solid fa-wallet icon-green"></i>
-                <h3>3. Withdraw Easily</h3>
-                <p>Convert your earnings into real cash. Withdraw securely via bank transfer, mobile money, or crypto.</p>
+                <h3>3. Withdraw Securely</h3>
+                <p>Cash out your earnings easily via PayPal, bank transfer, or popular European & US payment methods.</p>
             </div>
         </div>
     </div>
 
     <!-- WHY CHOOSE US -->
     <div class="section">
-        <h2><i class="fa-solid fa-star icon-orange"></i> Why Thousands Love Us</h2>
+        <h2><i class="fa-solid fa-star icon-orange"></i> Why Players in USA & Europe Love Us</h2>
         <div class="cards">
             <div class="card">
                 <i class="fa-solid fa-bolt icon-blue"></i>
-                <h3>Lightning Fast Access</h3>
-                <p>Play instantly with zero installation. Our games load in seconds so you can start earning immediately.</p>
+                <h3>Instant Access</h3>
+                <p>Play directly in your browser. No apps to download. Start earning in seconds on any device.</p>
             </div>
             <div class="card">
                 <i class="fa-solid fa-shield-halved icon-green"></i>
-                <h3>100% Secure & Trusted</h3>
-                <p>Advanced encryption and secure payment systems protect your data and earnings at all times.</p>
+                <h3>Secure & Trusted</h3>
+                <p>Bank-level encryption and secure systems protect your data and earnings at all times.</p>
             </div>
             <div class="card">
                 <i class="fa-solid fa-money-bill-wave icon-yellow"></i>
-                <h3>Real Money Rewards</h3>
-                <p>Unlike fake reward apps, we pay real cash. Over <?php echo $currency; ?>1,000,000 already paid out to our players.</p>
+                <h3>Real Cash Rewards</h3>
+                <p>Convert your gameplay into actual dollars. Over $2,850,000 already paid out to our players.</p>
             </div>
             <div class="card">
                 <i class="fa-solid fa-users icon-purple"></i>
-                <h3>Thriving Community</h3>
-                <p>Join a growing community of players who enjoy fair gameplay and genuine earning opportunities.</p>
+                <h3>Global Community</h3>
+                <p>Join thousands of players from the USA, UK, Germany, France, and across Europe.</p>
             </div>
         </div>
     </div>
@@ -273,20 +273,20 @@
         <h2><i class="fa-solid fa-fire icon-red"></i> Featured Games</h2>
         <div class="cards">
             <div class="card">
-                <h3><i class="fa-solid fa-car icon-orange"></i> High-Speed Racing</h3>
-                <p>Dodge traffic, collect coins, and beat your high score in this addictive endless runner.</p>
+                <h3><i class="fa-solid fa-car icon-orange"></i> Highway Racer</h3>
+                <p>Dodge traffic, collect coins, and set new high scores in this thrilling endless runner.</p>
                 <br>
                 <a href="games/race-car.php" class="btn btn-primary">Play Now</a>
             </div>
             <div class="card">
                 <h3><i class="fa-solid fa-bullseye icon-blue"></i> Bubble Shooter Pro</h3>
-                <p>Challenge your mind with this classic bubble popping game. Clear levels and earn big rewards.</p>
+                <p>Classic bubble popping fun with modern graphics and big reward potential.</p>
                 <br>
                 <a href="games/bubble-shooter.php" class="btn btn-primary">Play Now</a>
             </div>
             <div class="card">
-                <h3><i class="fa-solid fa-brain icon-purple"></i> Puzzle Master</h3>
-                <p>Test your logic and problem-solving skills with increasingly difficult puzzles.</p>
+                <h3><i class="fa-solid fa-brain icon-purple"></i> Logic Puzzle Master</h3>
+                <p>Challenge your brain with increasingly difficult puzzles and earn real money while playing.</p>
                 <br>
                 <a href="games/puzzle.php" class="btn btn-primary">Play Now</a>
             </div>
@@ -295,7 +295,7 @@
 
     <!-- PLATFORM STATS -->
     <div class="section">
-        <h2><i class="fa-solid fa-chart-line icon-green"></i> Our Growing Platform</h2>
+        <h2><i class="fa-solid fa-chart-line icon-green"></i> Platform Stats</h2>
         <div class="stats">
             <div class="stat-item">
                 <h3>25,000+</h3>
@@ -303,11 +303,11 @@
             </div>
             <div class="stat-item">
                 <h3>12,450+</h3>
-                <p>Happy Players</p>
+                <p>Active Players</p>
             </div>
             <div class="stat-item">
-                <h3><?php echo $currency; ?> 2,850,000+</h3>
-                <p>Total Earnings Paid</p>
+                <h3>$2,850,000+</h3>
+                <p>Total Paid Out</p>
             </div>
             <div class="stat-item">
                 <h3>98.7%</h3>
@@ -324,22 +324,22 @@
                 <div class="review-stars">
                     ★★★★☆
                 </div>
-                <p>“I’ve withdrawn over ₦45,000 in just 3 weeks. The games are actually fun and the payouts are fast!”</p>
-                <small><strong>- Chinedu Okafor, Lagos</strong></small>
+                <p>“I’ve cashed out over $180 in just one month. The games are actually enjoyable and withdrawals are fast!”</p>
+                <small><strong>- James Thompson, New York, USA</strong></small>
             </div>
             <div class="review">
                 <div class="review-stars">
                     ★★★★★
                 </div>
-                <p>“Best earning platform in Nigeria. I play during my free time and cash out every weekend. Highly recommended!”</p>
-                <small><strong>- Aisha Bello, Abuja</strong></small>
+                <p>“Best play-to-earn platform I’ve tried in Europe. I play in my free time and get paid via PayPal every week.”</p>
+                <small><strong>- Emma Müller, Berlin, Germany</strong></small>
             </div>
             <div class="review">
                 <div class="review-stars">
                     ★★★★☆
                 </div>
-                <p>“Finally a legit play-to-earn site that pays. Customer support is responsive too.”</p>
-                <small><strong>- Emmanuel Adebayo</strong></small>
+                <p>“Legit site with real payouts. Finally a gaming platform that actually pays players in the UK.”</p>
+                <small><strong>- Oliver Smith, London, UK</strong></small>
             </div>
         </div>
     </div>
@@ -347,11 +347,11 @@
     <!-- FINAL CTA -->
     <div class="section">
         <div class="cta">
-            <h2><i class="fa-solid fa-rocket"></i> Ready to Start Earning?</h2>
-            <p>Join thousands of Nigerians who are turning their gaming passion into real income.</p>
+            <h2><i class="fa-solid fa-rocket"></i> Ready to Turn Gaming into Income?</h2>
+            <p>Join thousands of players across the USA and Europe who are earning real money while having fun.</p>
             <br><br>
             <a href="games.php" class="btn btn-primary" style="font-size:18px; padding:16px 32px;">
-                <i class="fa-solid fa-play"></i> Play Games Now
+                <i class="fa-solid fa-play"></i> Start Playing & Earning
             </a>
             <?php if(!isset($_SESSION['user_id'])): ?>
                 <a href="register.php" class="btn btn-dark" style="margin-left:15px; font-size:18px; padding:16px 32px;">
