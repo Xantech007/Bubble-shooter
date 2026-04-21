@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
             $stmt->execute([$hashed_password, $user_id]);
 
-            // Set success message in session and redirect
+            // Set success message and redirect to profile
             $_SESSION['success_message'] = "Password changed successfully!";
             header("Location: profile.php");
             exit;
@@ -63,109 +63,142 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <style>
 .container {
-    max-width: 600px;
+    max-width: 620px;
     margin: auto;
     padding: 20px;
 }
 
 .password-box {
     background: #fff;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     margin-top: 40px;
 }
 
 .password-box h2 {
+    margin-bottom: 30px;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #1f2937;
+}
+
+/* ERROR MESSAGE */
+.error {
+    background: #fee2e2;
+    color: #ef4444;
+    padding: 14px 18px;
+    border-radius: 8px;
     margin-bottom: 25px;
-    color: #333;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 6px;
     font-weight: 500;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 16px;
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: #00aaff;
-    box-shadow: 0 0 0 3px rgba(0,170,255,0.1);
-}
-
-.btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 16px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 8px;
 }
 
+/* FORM STYLING */
+.form-group {
+    margin-bottom: 24px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #374151;
+}
+.form-group input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+.form-group input:focus {
+    outline: none;
+    border-color: #00aaff;
+    box-shadow: 0 0 0 3px rgba(0, 170, 255, 0.15);
+}
+
+/* BUTTONS */
+.btn {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+}
 .btn-primary {
     background: #00aaff;
     color: #fff;
 }
-
+.btn-primary:hover {
+    background: #0088cc;
+}
 .btn-secondary {
-    background: #666;
+    background: #1f2937;
     color: #fff;
     text-decoration: none;
 }
-
-.error {
-    color: red;
-    background: #ffe6e6;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 20px;
+.btn-secondary:hover {
+    background: #111827;
 }
 </style>
 
 <div class="container">
     <div class="password-box">
-        <h2><i class="fa-solid fa-key"></i> Change Password</h2>
+        <h2>
+            <i class="fa-solid fa-key" style="color:#00aaff;"></i> 
+            Change Password
+        </h2>
 
         <?php if (isset($error)): ?>
-            <div class="error"><?php echo $error; ?></div>
+            <div class="error">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <?php echo $error; ?>
+            </div>
         <?php endif; ?>
 
         <form method="POST">
             <div class="form-group">
                 <label for="current_password">Current Password</label>
-                <input type="password" id="current_password" name="current_password" required>
+                <input type="password" 
+                       id="current_password" 
+                       name="current_password" 
+                       required>
             </div>
 
             <div class="form-group">
                 <label for="new_password">New Password</label>
-                <input type="password" id="new_password" name="new_password" minlength="6" required>
+                <input type="password" 
+                       id="new_password" 
+                       name="new_password" 
+                       minlength="6" 
+                       required>
             </div>
 
             <div class="form-group">
                 <label for="confirm_password">Confirm New Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" minlength="6" required>
+                <input type="password" 
+                       id="confirm_password" 
+                       name="confirm_password" 
+                       minlength="6" 
+                       required>
             </div>
 
-            <br>
+            <br><br>
             <button type="submit" class="btn btn-primary">
                 <i class="fa-solid fa-save"></i> Update Password
             </button>
 
-            <a href="profile.php" class="btn btn-secondary" style="margin-left: 10px;">
+            <a href="profile.php" class="btn btn-secondary" style="margin-left: 12px;">
                 <i class="fa-solid fa-arrow-left"></i> Cancel
             </a>
         </form>
