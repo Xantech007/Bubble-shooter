@@ -1,9 +1,7 @@
 <?php
-
 include "inc/header.php";
 include "inc/navbar.php";
 
-session_start();
 require_once "config/database.php";
 
 /* CHECK LOGIN */
@@ -17,6 +15,9 @@ $user_id = $_SESSION['user_id'];
 /* CONNECT DB */
 $db = new Database();
 $conn = $db->connect();
+
+/* ENABLE ERRORS */
+$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 /* GET GAME */
 if (!isset($_GET['game_id'])) {
@@ -80,10 +81,6 @@ $rate = (float)$game['reward_per_min'];
             gap: 10px;
         }
 
-        .panel span {
-            font-weight: bold;
-        }
-
         .btn {
             padding: 10px 15px;
             border: none;
@@ -99,13 +96,13 @@ $rate = (float)$game['reward_per_min'];
         .claim {
             background: #22c55e;
             color: #fff;
+            opacity: 0.6;
+            pointer-events: none; /* disabled initially */
         }
 
-        @media(max-width:600px){
-            .panel {
-                flex-direction: column;
-                align-items: flex-start;
-            }
+        .claim.active {
+            opacity: 1;
+            pointer-events: auto;
         }
     </style>
 </head>
@@ -118,12 +115,12 @@ $rate = (float)$game['reward_per_min'];
 
     <!-- PANEL -->
     <div class="panel">
-        <div>⏱ Time: <span id="time">0</span>s</div>
-        <div>💰 Earned: $<span id="earn">0.00</span></div>
+        <div>⏱ Time: <b id="time">0</b>s</div>
+        <div>💰 Earned: $<b id="earn">0.00</b></div>
 
         <div>
             <button class="btn quit" onclick="quitGame()">Quit</button>
-            <button class="btn claim" onclick="claimEarnings()">Claim</button>
+            <button class="btn claim" id="claimBtn" onclick="claimEarnings()">Claim</button>
         </div>
     </div>
 
@@ -133,21 +130,26 @@ $rate = (float)$game['reward_per_min'];
 let seconds = 0;
 let rate = <?php echo $rate; ?>;
 let session_id = <?php echo $session_id; ?>;
-let stopped = false;
 
+let stopped = false;
+let ended = false;
+
+/* TIMER */
 let timer = setInterval(() => {
     if (stopped) return;
 
     seconds++;
-
     document.getElementById("time").innerText = seconds;
 
     let earned = (seconds / 60) * rate;
     document.getElementById("earn").innerText = earned.toFixed(2);
+
 }, 1000);
 
-/* QUIT GAME */
-function quitGame() {
+/* END SESSION FUNCTION */
+function endSession(callback = null) {
+    if (ended) return;
+    ended = true;
     stopped = true;
 
     fetch("ajax_end_session.php", {
@@ -160,6 +162,24 @@ function quitGame() {
     })
     .then(res => res.json())
     .then(data => {
+
+        document.getElementById("earn").innerText = data.amount;
+
+        // Enable claim button
+        let btn = document.getElementById("claimBtn");
+        btn.classList.add("active");
+
+        if (callback) callback(data);
+
+    })
+    .catch(() => {
+        alert("Error ending session");
+    });
+}
+
+/* QUIT */
+function quitGame() {
+    endSession((data) => {
         alert("Game ended. Earned: $" + data.amount);
         window.location.href = "index.php";
     });
@@ -167,6 +187,12 @@ function quitGame() {
 
 /* CLAIM */
 function claimEarnings() {
+
+    if (!ended) {
+        alert("You must quit the game first.");
+        return;
+    }
+
     fetch("ajax_claim.php", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
@@ -177,8 +203,20 @@ function claimEarnings() {
     .then(res => res.json())
     .then(data => {
         alert(data.message);
+        document.getElementById("earn").innerText = "0.00";
+    })
+    .catch(() => {
+        alert("Claim failed");
     });
 }
+
+/* AUTO END IF USER CLOSES TAB */
+window.addEventListener("beforeunload", function () {
+    navigator.sendBeacon("ajax_end_session.php", JSON.stringify({
+        session_id: session_id,
+        duration: seconds
+    }));
+});
 </script>
 
 </body>
