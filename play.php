@@ -1,7 +1,6 @@
 <?php
 include "inc/header.php";
 include "inc/navbar.php";
-
 require_once "config/database.php";
 
 /* CHECK LOGIN */
@@ -15,9 +14,47 @@ $user_id = $_SESSION['user_id'];
 /* CONNECT DB */
 $db = new Database();
 $conn = $db->connect();
-
-/* ENABLE ERRORS */
 $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+/* SUCCESS MESSAGE */
+$success = "";
+
+/* HANDLE CLAIM (POST) */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['claim'])) {
+
+    $session_id = (int)$_POST['session_id'];
+
+    $stmt = $conn->prepare("
+        SELECT * FROM game_sessions 
+        WHERE id = ? AND user_id = ? AND claimed = 0
+    ");
+    $stmt->execute([$session_id, $user_id]);
+    $session = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($session && $session['amount_earned'] > 0) {
+
+        /* ADD TO BALANCE */
+        $stmt = $conn->prepare("
+            UPDATE users 
+            SET balance = balance + ? 
+            WHERE id = ?
+        ");
+        $stmt->execute([$session['amount_earned'], $user_id]);
+
+        /* MARK CLAIMED */
+        $stmt = $conn->prepare("
+            UPDATE game_sessions 
+            SET claimed = 1 
+            WHERE id = ?
+        ");
+        $stmt->execute([$session_id]);
+
+        $success = "✅ Earnings of $" . number_format($session['amount_earned'], 2) . " added to your balance!";
+
+    } else {
+        $success = "⚠️ Nothing to claim or already claimed.";
+    }
+}
 
 /* GET GAME */
 if (!isset($_GET['game_id'])) {
@@ -52,75 +89,58 @@ $rate = (float)$game['reward_per_min'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-        body {
-            margin: 0;
-            font-family: Arial;
-            background: #0f172a;
-            color: #fff;
-        }
-
-        .wrapper {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        iframe {
-            flex: 1;
-            border: none;
-            width: 100%;
-        }
+        body { margin:0; font-family:Arial; background:#0f172a; color:#fff; }
+        .wrapper { display:flex; flex-direction:column; height:100vh; }
+        iframe { flex:1; border:none; width:100%; }
 
         .panel {
-            background: #111827;
-            padding: 15px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
+            background:#111827;
+            padding:15px;
+            display:flex;
+            flex-wrap:wrap;
+            justify-content:space-between;
+            align-items:center;
         }
 
         .btn {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
+            padding:10px 15px;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
         }
 
-        .quit {
-            background: #ef4444;
-            color: #fff;
-        }
+        .quit { background:#ef4444; color:#fff; }
+        .claim { background:#22c55e; color:#fff; }
 
-        .claim {
-            background: #22c55e;
-            color: #fff;
-            opacity: 0.6;
-            pointer-events: none; /* disabled initially */
-        }
-
-        .claim.active {
-            opacity: 1;
-            pointer-events: auto;
+        .alert {
+            background:#16a34a;
+            padding:10px;
+            text-align:center;
         }
     </style>
 </head>
 <body>
 
+<?php if ($success): ?>
+    <div class="alert"><?php echo $success; ?></div>
+<?php endif; ?>
+
 <div class="wrapper">
 
-    <!-- GAME -->
     <iframe src="<?php echo htmlspecialchars($game['file_path']); ?>"></iframe>
 
-    <!-- PANEL -->
     <div class="panel">
         <div>⏱ Time: <b id="time">0</b>s</div>
         <div>💰 Earned: $<b id="earn">0.00</b></div>
 
         <div>
             <button class="btn quit" onclick="quitGame()">Quit</button>
-            <button class="btn claim" id="claimBtn" onclick="claimEarnings()">Claim</button>
+
+            <!-- CLAIM FORM -->
+            <form method="POST" style="display:inline;">
+                <input type="hidden" name="session_id" id="sessionInput">
+                <button type="submit" name="claim" class="btn claim">Claim</button>
+            </form>
         </div>
     </div>
 
@@ -130,12 +150,11 @@ $rate = (float)$game['reward_per_min'];
 let seconds = 0;
 let rate = <?php echo $rate; ?>;
 let session_id = <?php echo $session_id; ?>;
-
 let stopped = false;
 let ended = false;
 
 /* TIMER */
-let timer = setInterval(() => {
+setInterval(() => {
     if (stopped) return;
 
     seconds++;
@@ -146,11 +165,10 @@ let timer = setInterval(() => {
 
 }, 1000);
 
-/* END SESSION FUNCTION */
-function endSession(callback = null) {
-    if (ended) return;
-    ended = true;
+/* END SESSION */
+function quitGame() {
     stopped = true;
+    ended = true;
 
     fetch("ajax_end_session.php", {
         method: "POST",
@@ -162,61 +180,14 @@ function endSession(callback = null) {
     })
     .then(res => res.json())
     .then(data => {
-
         document.getElementById("earn").innerText = data.amount;
 
-        // Enable claim button
-        let btn = document.getElementById("claimBtn");
-        btn.classList.add("active");
+        // set session id into form
+        document.getElementById("sessionInput").value = session_id;
 
-        if (callback) callback(data);
-
-    })
-    .catch(() => {
-        alert("Error ending session");
+        alert("Game ended. Now click CLAIM.");
     });
 }
-
-/* QUIT */
-function quitGame() {
-    endSession((data) => {
-        alert("Game ended. Earned: $" + data.amount);
-        window.location.href = "index.php";
-    });
-}
-
-/* CLAIM */
-function claimEarnings() {
-
-    if (!ended) {
-        alert("You must quit the game first.");
-        return;
-    }
-
-    fetch("ajax_claim.php", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            session_id: session_id
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        alert(data.message);
-        document.getElementById("earn").innerText = "0.00";
-    })
-    .catch(() => {
-        alert("Claim failed");
-    });
-}
-
-/* AUTO END IF USER CLOSES TAB */
-window.addEventListener("beforeunload", function () {
-    navigator.sendBeacon("ajax_end_session.php", JSON.stringify({
-        session_id: session_id,
-        duration: seconds
-    }));
-});
 </script>
 
 </body>
