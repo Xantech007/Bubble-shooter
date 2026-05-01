@@ -1,4 +1,8 @@
 <?php
+
+include "inc/header.php";
+include "inc/navbar.php";
+
 session_start();
 require_once "config/database.php";
 
@@ -179,3 +183,5 @@ function claimEarnings() {
 
 </body>
 </html>
+
+<?php include "inc/footer.php"; ?>
