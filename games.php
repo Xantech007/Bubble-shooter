@@ -18,16 +18,17 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Game Center - Play & Earn</title>
+    <title>GameWARE - Play & Earn</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
 
-    <!-- SaneGames Assets -->
-    <link rel="icon" type="image/png" href="https://sanegames.elouan.xyz/assets/favicon.png" />
-    <link rel="stylesheet" href="https://sanegames.elouan.xyz/style.css" />
+    <!-- GameWARE Assets (Updated) -->
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
 
-    <!-- Your existing styles + Font Awesome -->
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
@@ -66,10 +67,9 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <main id="gameInput">
         <div class="container">
-
             <div class="page-header">
-                <h1><i class="fa-solid fa-gamepad"></i> Game Center</h1>
-                <p>Play games without ads • Powered by SaneGames</p>
+                <h1><i class="fa-solid fa-gamepad"></i> GameWARE</h1>
+                <p>Play games and earn • Powered by GameWARE</p>
             </div>
 
             <?php if (!isset($_SESSION['user_id'])): ?>
@@ -91,7 +91,6 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <div class="card-body">
                                 <h3><?= htmlspecialchars($game['name']) ?></h3>
                                 <p>Play and earn based on time spent.</p>
-                                
                                 <?php if (!empty($game['reward_per_min'])): ?>
                                 <strong style="color:#00aa00;">
                                     $<?= number_format($game['reward_per_min'], 4) ?>/min
@@ -100,7 +99,7 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </div>
 
                             <div style="padding: 0 20px 20px;">
-                                <a href="#" onclick="loadSaneGame('<?= htmlspecialchars($game['crazygames_slug'] ?? '') ?>', <?= $game['id'] ?>); return false;"
+                                <a href="#" onclick="loadGameWARE('<?= htmlspecialchars($game['crazygames_slug'] ?? '') ?>', <?= $game['id'] ?>); return false;"
                                    class="play-btn">
                                     <i class="fa-solid fa-play"></i> Play Now
                                 </a>
@@ -116,31 +115,48 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </main>
 
-    <!-- SaneGames Scripts -->
-    <script src="https://sanegames.elouan.xyz/palmframe.js"></script>
+    <!-- SaneGames Scripts (Backend still uses it for now) -->
+    <script src="palmframe.js"></script>
     <palmframe-widget project="w82cB8t3Jgv0" />
-    <script src="https://sanegames.elouan.xyz/main.js"></script>
+    <script src="main.js"></script>
 
     <script>
-    // Custom function to load game from your database
-    function loadSaneGame(slug, gameId) {
+    let currentSessionId = null;
+
+    function loadGameWARE(slug, gameId) {
         if (!slug) {
             alert("This game is not properly configured (missing slug).");
             return;
         }
 
-        // Optional: Track play start in your DB via AJAX if needed
+        // Track play start
         fetch('track_play.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: `game_id=${gameId}`
-        }).catch(() => {}); // fire and forget
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                currentSessionId = data.session_id;
+            }
+        })
+        .catch(() => {});
 
-        // Use SaneGames logic
+        // Load via SaneGames backend
         const currentUrl = new URL(window.location.href);
         currentUrl.search = `?game=${encodeURIComponent(slug)}`;
         window.location.href = currentUrl.toString();
     }
+
+    // Auto end session when leaving
+    window.addEventListener('beforeunload', function() {
+        if (currentSessionId) {
+            navigator.sendBeacon('end_play.php', new URLSearchParams({
+                session_id: currentSessionId
+            }));
+        }
+    });
     </script>
 
 <?php include "inc/footer.php"; ?>
