@@ -2,21 +2,26 @@
 session_start();
 require_once "config/database.php";
 
+header('Content-Type: application/json');
+
 if (!isset($_SESSION['user_id'])) {
-    die("Unauthorized");
+    echo json_encode(["status" => "error", "message" => "Unauthorized"]);
+    exit;
 }
 
 $user_id = $_SESSION['user_id'];
 
 if (!isset($_POST['amount'])) {
-    die("Invalid request");
+    echo json_encode(["status" => "error", "message" => "Invalid request"]);
+    exit;
 }
 
 $amount = (float) $_POST['amount'];
 
-// SECURITY LIMIT (ANTI-CHEAT)
+// SECURITY LIMIT
 if ($amount <= 0 || $amount > 5) {
-    die("Invalid reward amount");
+    echo json_encode(["status" => "error", "message" => "Invalid reward amount"]);
+    exit;
 }
 
 $db = new Database();
@@ -26,7 +31,11 @@ $conn = $db->connect();
 $stmt = $conn->prepare("UPDATE users SET balance = balance + ? WHERE id = ?");
 $stmt->execute([$amount, $user_id]);
 
-// UPDATE SESSION BALANCE
+// UPDATE SESSION
 $_SESSION['balance'] += $amount;
 
-echo "Reward claimed successfully! +$" . number_format($amount, 4);
+echo json_encode([
+    "status" => "success",
+    "message" => "Reward claimed successfully!",
+    "new_balance" => number_format($_SESSION['balance'], 4)
+]);
