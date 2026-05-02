@@ -1,9 +1,8 @@
 <?php
 include "inc/header.php";
 include "inc/navbar.php";
-require_once "config/database.php";
 
-/* CHECK LOGIN */
+// REQUIRE LOGIN
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
@@ -11,21 +10,14 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-/* CONNECT DB */
-$db = new Database();
-$conn = $db->connect();
-$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-/* MESSAGE */
-$success = "";
-
-/* GET GAME */
-if (!isset($_GET['game_id'])) {
+// VALIDATE GAME ID
+if (!isset($_GET['game_id']) || !is_numeric($_GET['game_id'])) {
     die("Invalid game.");
 }
 
-$game_id = (int)$_GET['game_id'];
+$game_id = (int) $_GET['game_id'];
 
+// FETCH GAME
 $stmt = $conn->prepare("SELECT * FROM games WHERE id = ? AND status = 1");
 $stmt->execute([$game_id]);
 $game = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -34,193 +26,149 @@ if (!$game) {
     die("Game not found.");
 }
 
-/* CREATE SESSION (ONCE PER LOAD) */
-$stmt = $conn->prepare("
-    INSERT INTO game_sessions (user_id, game_id, start_time)
-    VALUES (?, ?, NOW())
-");
-$stmt->execute([$user_id, $game_id]);
-
-$session_id = $conn->lastInsertId();
-$rate = (float)$game['reward_per_min'];
-
-/* =========================
-   CLAIM HANDLER (SAFE)
-   ========================= */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['claim'])) {
-
-    $session_id_post = (int)$_POST['session_id'];
-
-    /* GET SESSION */
-    $stmt = $conn->prepare("
-        SELECT gs.*, g.reward_per_min 
-        FROM game_sessions gs
-        JOIN games g ON gs.game_id = g.id
-        WHERE gs.id = ? AND gs.user_id = ?
-    ");
-    $stmt->execute([$session_id_post, $user_id]);
-    $session = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$session) {
-        $success = "⚠️ Session not found.";
-    } else {
-
-        /* AUTO FINALIZE IF NOT ENDED */
-        if (empty($session['end_time'])) {
-
-            $start = strtotime($session['start_time']);
-            $end = time();
-
-            $duration = $end - $start;
-            $amount = ($duration / 60) * $session['reward_per_min'];
-
-            if ($duration < 5) $amount = 0;
-
-            $stmt = $conn->prepare("
-                UPDATE game_sessions 
-                SET end_time = NOW(),
-                    duration = ?,
-                    amount_earned = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$duration, $amount, $session_id_post]);
-
-            $session['amount_earned'] = $amount;
-        }
-
-        /* CLAIM CHECK */
-        if ($session['claimed'] == 1) {
-            $success = "⚠️ Already claimed.";
-        } elseif ($session['amount_earned'] <= 0) {
-            $success = "⚠️ No earnings to claim.";
-        } else {
-
-            /* UPDATE BALANCE */
-            $stmt = $conn->prepare("
-                UPDATE users 
-                SET balance = balance + ? 
-                WHERE id = ?
-            ");
-            $stmt->execute([$session['amount_earned'], $user_id]);
-
-            /* MARK CLAIMED */
-            $stmt = $conn->prepare("
-                UPDATE game_sessions 
-                SET claimed = 1 
-                WHERE id = ?
-            ");
-            $stmt->execute([$session_id_post]);
-
-            $success = "✅ $" . number_format($session['amount_earned'], 2) . " added to your balance!";
-        }
-    }
-}
+// GAME SETTINGS
+$reward_per_min = (float)$game['reward_per_min'];
+$game_path = $game['game_path']; // IMPORTANT: your game file path
 ?>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title><?php echo htmlspecialchars($game['name']); ?> - Play</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    <style>
-        body { margin:0; font-family:Arial; background:#0f172a; color:#fff; }
-        .wrapper { display:flex; flex-direction:column; height:100vh; }
-        iframe { flex:1; border:none; width:100%; }
+<style>
+.container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 20px;
+}
 
-        .panel {
-            background:#111827;
-            padding:15px;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            flex-wrap:wrap;
-        }
+.game-box {
+    background: #fff;
+    border-radius: 14px;
+    padding: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
 
-        .btn {
-            padding:10px 15px;
-            border:none;
-            border-radius:6px;
-            cursor:pointer;
-        }
+iframe {
+    width: 100%;
+    height: 500px;
+    border: none;
+    border-radius: 10px;
+    background: #000;
+}
 
-        .quit { background:#ef4444; color:#fff; }
-        .claim { background:#22c55e; color:#fff; }
+.stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
 
-        .alert {
-            background:#16a34a;
-            padding:10px;
-            text-align:center;
-        }
-    </style>
-</head>
-<body>
+.stat {
+    background: #f8fafc;
+    padding: 12px 15px;
+    border-radius: 10px;
+    font-size: 15px;
+}
 
-<?php if ($success): ?>
-    <div class="alert"><?php echo $success; ?></div>
-<?php endif; ?>
+.earn {
+    color: green;
+    font-weight: bold;
+}
 
-<div class="wrapper">
+.controls {
+    margin-top: 20px;
+    text-align: center;
+}
 
-    <iframe src="<?php echo htmlspecialchars($game['file_path']); ?>"></iframe>
+button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    background: #00aaff;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+}
 
-    <div class="panel">
-        <div>⏱ Time: <b id="time">0</b>s</div>
-        <div>💰 Earned: $<b id="earn">0.00</b></div>
+button:hover {
+    background: #0088cc;
+}
+</style>
 
-        <div>
-            <button class="btn quit" onclick="quitGame()">Quit</button>
+<div class="container">
 
-            <!-- SAFE CLAIM FORM -->
-            <form method="POST" style="display:inline;">
-                <input type="hidden" name="session_id" value="<?php echo $session_id; ?>">
-                <button type="submit" name="claim" class="btn claim">
-                    Claim
-                </button>
-            </form>
+    <h2><i class="fa-solid fa-gamepad"></i> <?php echo htmlspecialchars($game['name']); ?></h2>
+
+    <div class="game-box">
+
+        <!-- GAME FRAME -->
+        <iframe src="<?php echo htmlspecialchars($game_path); ?>"></iframe>
+
+        <!-- STATS -->
+        <div class="stats">
+            <div class="stat">
+                ⏱ Time: <span id="time">0</span> sec
+            </div>
+
+            <div class="stat">
+                💰 Earned: 
+                <span class="earn">$<span id="earnings">0.0000</span></span>
+            </div>
+
+            <div class="stat">
+                ⚡ Rate: $<?php echo number_format($reward_per_min, 4); ?>/min
+            </div>
         </div>
+
+        <!-- CONTROLS -->
+        <div class="controls">
+            <button onclick="claimReward()">
+                <i class="fa-solid fa-coins"></i> Claim Reward
+            </button>
+        </div>
+
     </div>
 
 </div>
 
 <script>
 let seconds = 0;
-let rate = <?php echo $rate; ?>;
-let stopped = false;
+let rewardPerMin = <?php echo $reward_per_min; ?>;
+let earned = 0;
 
-/* TIMER */
+// TRACK TIME
 setInterval(() => {
-    if (stopped) return;
-
     seconds++;
     document.getElementById("time").innerText = seconds;
 
-    let earned = (seconds / 60) * rate;
-    document.getElementById("earn").innerText = earned.toFixed(2);
-
+    earned = (seconds / 60) * rewardPerMin;
+    document.getElementById("earnings").innerText = earned.toFixed(4);
 }, 1000);
 
-/* QUIT */
-function quitGame() {
-    stopped = true;
+// CLAIM FUNCTION
+function claimReward() {
 
-    fetch("ajax_end_session.php", {
+    if (earned <= 0) {
+        alert("No earnings yet.");
+        return;
+    }
+
+    fetch("claim_reward.php", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            session_id: <?php echo $session_id; ?>,
-            duration: seconds
-        })
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: "amount=" + earned.toFixed(4)
     })
-    .then(res => res.json())
+    .then(res => res.text())
     .then(data => {
-        document.getElementById("earn").innerText = data.amount;
-        alert("Game ended. You can now claim your earnings.");
+        alert(data);
+
+        // RESET
+        seconds = 0;
+        earned = 0;
     });
 }
 </script>
-
-</body>
-</html>
 
 <?php include "inc/footer.php"; ?>
