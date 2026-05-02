@@ -133,7 +133,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <?php endif; ?>
 
         <?php if (isset($_SESSION['user_id'])): ?>
-            <!-- Logged-in User Menu -->
+
             <?php if ($current_page !== 'dashboard.php'): ?>
                 <a href="/dashboard.php">
                     <i class="fa-solid fa-chart-line"></i> Dashboard
@@ -149,18 +149,24 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <!-- Balance -->
             <span class="balance">
                 <i class="fa-solid fa-wallet"></i>
-                <?php
-                $user_balance = 0.00;
-                if (isset($_SESSION['user_id']) && isset($conn)) {
-                    $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
-                    $stmt->execute([$_SESSION['user_id']]);
-                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if ($row) {
-                        $user_balance = $row['balance'];
+                <span id="navBalance">
+                    <?php
+                    $user_balance = $_SESSION['balance'] ?? 0.00;
+
+                    // Optional DB sync (keeps it accurate on refresh)
+                    if (isset($_SESSION['user_id']) && isset($conn)) {
+                        $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ?");
+                        $stmt->execute([$_SESSION['user_id']]);
+                        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($row) {
+                            $user_balance = $row['balance'];
+                            $_SESSION['balance'] = $user_balance; // keep session in sync
+                        }
                     }
-                }
-                echo ($currency ?? '$') . " " . number_format($user_balance, 2);
-                ?>
+
+                    echo ($currency ?? '$') . number_format($user_balance, 4);
+                    ?>
+                </span>
             </span>
 
             <!-- Logout -->
@@ -169,13 +175,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </a>
 
         <?php else: ?>
-            <!-- Guest Menu -->
+
             <a href="/login.php">
                 <i class="fa-solid fa-right-to-bracket"></i> Login
             </a>
             <a href="/register.php">
                 <i class="fa-solid fa-user-plus"></i> Register
             </a>
+
         <?php endif; ?>
     </div>
 </div>
