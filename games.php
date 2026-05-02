@@ -15,177 +15,132 @@ $stmt->execute();
 $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<!-- FONT AWESOME -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Game Center - Play & Earn</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
 
-<style>
-* { box-sizing: border-box; }
+    <!-- SaneGames Assets -->
+    <link rel="icon" type="image/png" href="https://sanegames.elouan.xyz/assets/favicon.png" />
+    <link rel="stylesheet" href="https://sanegames.elouan.xyz/style.css" />
 
-.container {
-    max-width: 1200px;
-    margin: auto;
-    padding: 15px;
-}
+    <!-- Your existing styles + Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-.page-header {
-    text-align: center;
-    margin-top: 40px;
-    margin-bottom: 25px;
-}
-.page-header h1 {
-    font-size: 32px;
-    margin-bottom: 8px;
-}
-.page-header p {
-    color: #555;
-    font-size: 17px;
-}
+    <style>
+        * { box-sizing: border-box; }
+        .container { max-width: 1200px; margin: auto; padding: 15px; }
+        .page-header { text-align: center; margin: 40px 0 25px; }
+        .page-header h1 { font-size: 32px; margin-bottom: 8px; }
+        .notice {
+            background: #fff3cd; color: #856404; padding: 14px 20px;
+            border-radius: 10px; margin-bottom: 30px; text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 22px;
+            margin-top: 20px;
+        }
+        .card {
+            background: #fff; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.07); transition: 0.3s;
+        }
+        .card:hover { transform: translateY(-6px); box-shadow: 0 15px 35px rgba(0,0,0,0.12); }
+        .card img { width: 100%; height: 170px; object-fit: cover; }
+        .card-body { padding: 18px 20px; flex: 1; }
+        .play-btn {
+            display: block; width: 100%; padding: 14px; text-align: center;
+            background: #00aaff; color: #fff; border-radius: 10px;
+            text-decoration: none; font-weight: 600; margin-top: 15px;
+        }
+        .play-btn:hover { background: #0088cc; }
+    </style>
+</head>
+<body>
 
-.notice {
-    background: #fff3cd;
-    color: #856404;
-    padding: 14px 20px;
-    border-radius: 10px;
-    margin-bottom: 30px;
-    text-align: center;
-    font-size: 15.5px;
-}
+    <div class="loader" id="loader" style="display:none;">Loading Game...</div>
 
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 22px;
-}
+    <main id="gameInput">
+        <div class="container">
 
-.card {
-    background: #fff;
-    border-radius: 16px;
-    overflow: hidden;
-    transition: 0.3s ease;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.07);
-    display: flex;
-    flex-direction: column;
-}
-.card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.12);
-}
-.card img {
-    width: 100%;
-    height: 170px;
-    object-fit: cover;
-}
+            <div class="page-header">
+                <h1><i class="fa-solid fa-gamepad"></i> Game Center</h1>
+                <p>Play games without ads • Powered by SaneGames</p>
+            </div>
 
-.card-body {
-    padding: 18px 20px;
-    flex: 1;
-}
-.card h3 {
-    margin: 8px 0 12px;
-    font-size: 20px;
-}
-.card p {
-    color: #666;
-    font-size: 15px;
-}
+            <?php if (!isset($_SESSION['user_id'])): ?>
+            <div class="notice">
+                <i class="fa-solid fa-circle-info"></i>
+                <strong>Login required</strong> to track playtime and earn rewards.
+            </div>
+            <?php endif; ?>
 
-.badge {
-    display: inline-block;
-    padding: 6px 12px;
-    background: #e0f2fe;
-    color: #0369a1;
-    border-radius: 8px;
-    font-size: 13.5px;
-    margin-top: 10px;
-}
+            <div class="grid">
+                <?php if (count($games) > 0): ?>
+                    <?php foreach ($games as $game): ?>
+                        <div class="card">
+                            <?php if (!empty($game['thumbnail'])): ?>
+                                <img src="<?= htmlspecialchars($game['thumbnail']) ?>" 
+                                     alt="<?= htmlspecialchars($game['name']) ?>">
+                            <?php endif; ?>
 
-.play-btn {
-    display: block;
-    width: 100%;
-    padding: 14px;
-    text-align: center;
-    background: #00aaff;
-    color: #fff;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 16px;
-    transition: 0.3s;
-    margin-top: auto;
-}
-.play-btn:hover {
-    background: #0088cc;
-}
+                            <div class="card-body">
+                                <h3><?= htmlspecialchars($game['name']) ?></h3>
+                                <p>Play and earn based on time spent.</p>
+                                
+                                <?php if (!empty($game['reward_per_min'])): ?>
+                                <strong style="color:#00aa00;">
+                                    $<?= number_format($game['reward_per_min'], 4) ?>/min
+                                </strong>
+                                <?php endif; ?>
+                            </div>
 
-.icon-blue { color: #00aaff; }
-
-@media (max-width: 768px) {
-    .grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
-
-<div class="container">
-
-    <!-- HEADER -->
-    <div class="page-header">
-        <h1><i class="fa-solid fa-gamepad icon-blue"></i> Game Center</h1>
-        <p>Play exciting games and earn real money in USD</p>
-    </div>
-
-    <!-- LOGIN NOTICE -->
-    <?php if (!isset($_SESSION['user_id'])): ?>
-        <div class="notice">
-            <i class="fa-solid fa-circle-info"></i>
-            <strong>Login is required</strong> to earn and claim rewards.
+                            <div style="padding: 0 20px 20px;">
+                                <a href="#" onclick="loadSaneGame('<?= htmlspecialchars($game['crazygames_slug'] ?? '') ?>', <?= $game['id'] ?>); return false;"
+                                   class="play-btn">
+                                    <i class="fa-solid fa-play"></i> Play Now
+                                </a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p style="text-align:center; grid-column:1/-1; padding:80px 20px;">
+                        No games available at the moment.
+                    </p>
+                <?php endif; ?>
+            </div>
         </div>
-    <?php endif; ?>
+    </main>
 
-    <!-- GAMES GRID -->
-    <div class="grid">
-        <?php if (count($games) > 0): ?>
-            <?php foreach ($games as $game): ?>
-                <div class="card">
-                    <img src="<?php echo htmlspecialchars($game['thumbnail']); ?>" 
-                         alt="<?php echo htmlspecialchars($game['name']); ?>">
-                    
-                    <div class="card-body">
-                        <h3><?php echo htmlspecialchars($game['name']); ?></h3>
+    <!-- SaneGames Scripts -->
+    <script src="https://sanegames.elouan.xyz/palmframe.js"></script>
+    <palmframe-widget project="w82cB8t3Jgv0" />
+    <script src="https://sanegames.elouan.xyz/main.js"></script>
 
-                        <p>Play and earn based on time spent.</p>
+    <script>
+    // Custom function to load game from your database
+    function loadSaneGame(slug, gameId) {
+        if (!slug) {
+            alert("This game is not properly configured (missing slug).");
+            return;
+        }
 
-                        <span class="badge">
-                            <i class="fa-solid fa-coins"></i> 
-                            $<?php echo number_format($game['reward_per_min'], 4); ?>/min
-                        </span>
-                    </div>
+        // Optional: Track play start in your DB via AJAX if needed
+        fetch('track_play.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `game_id=${gameId}`
+        }).catch(() => {}); // fire and forget
 
-                    <div style="padding: 18px 20px 20px;">
-
-                        <?php if (isset($_SESSION['user_id'])): ?>
-                            <!-- PLAY VIA play.php -->
-                            <a class="play-btn" 
-                               href="play.php?game_id=<?php echo $game['id']; ?>">
-                                <i class="fa-solid fa-play"></i> Play Now
-                            </a>
-                        <?php else: ?>
-                            <!-- FORCE LOGIN -->
-                            <a class="play-btn" href="login.php">
-                                <i class="fa-solid fa-lock"></i> Login to Play
-                            </a>
-                        <?php endif; ?>
-
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <p style="text-align:center; grid-column: 1 / -1; padding: 60px;">
-                No games available at the moment.
-            </p>
-        <?php endif; ?>
-    </div>
-
-</div>
+        // Use SaneGames logic
+        const currentUrl = new URL(window.location.href);
+        currentUrl.search = `?game=${encodeURIComponent(slug)}`;
+        window.location.href = currentUrl.toString();
+    }
+    </script>
 
 <?php include "inc/footer.php"; ?>
