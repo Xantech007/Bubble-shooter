@@ -1,65 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Tetris Mobile</title>
-
-<!-- FIX PATH ISSUE -->
-<base href="./">
-
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <title>Tetris</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<div id="game-wrapper">
+<div id="game">
+    <canvas id="board"></canvas>
 
-    <!-- GAME AREA -->
-    <div id="tetris">
-        <div id="canvas"></div>
-    </div>
-
-    <!-- SIDE PANEL -->
     <div id="info">
-        <div id="next_shape"></div>
-
-        <p>Level: <span id="level">0</span></p>
-        <p>Lines: <span id="lines">0</span></p>
+        <h2>Tetris</h2>
         <p>Score: <span id="score">0</span></p>
-        <p>Time: <span id="time">0</span></p>
-
         <button id="start">Start Game</button>
     </div>
-
 </div>
 
-<!-- MOBILE CONTROLS -->
+<!-- Mobile Controls -->
 <div id="controls">
-    <button onclick="moveLeft()">⬅</button>
+    <button onclick="move(-1)">⬅</button>
     <button onclick="rotate()">⟳</button>
-    <button onclick="moveRight()">➡</button>
-    <button onclick="moveDown()">⬇</button>
+    <button onclick="move(1)">➡</button>
+    <button onclick="drop()">⬇</button>
 </div>
 
 <script src="script.js"></script>
-
-<script>
-// MOBILE CONTROL HOOKS (connect to your script.js functions)
-function moveLeft() {
-    document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: 37 }));
-}
-function moveRight() {
-    document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: 39 }));
-}
-function rotate() {
-    document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: 38 }));
-}
-function moveDown() {
-    document.dispatchEvent(new KeyboardEvent("keydown", { keyCode: 40 }));
-}
-</script>
 
 </body>
 </html>
