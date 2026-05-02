@@ -164,9 +164,11 @@ function claimReward() {
     .then(data => {
         alert(data);
 
-        // RESET
-        seconds = 0;
-        earned = 0;
+        // 🔥 FORCE FULL PAGE REFRESH (updates navbar balance)
+        window.location.reload();
+    })
+    .catch(() => {
+        alert("Something went wrong.");
     });
 }
 </script>
