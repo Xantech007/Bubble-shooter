@@ -28,7 +28,7 @@ if (!$game) {
 
 // GAME SETTINGS
 $reward_per_min = (float)$game['reward_per_min'];
-$game_path = $game['game_path']; // IMPORTANT: your game file path
+$game_path = $game['game_path'];
 ?>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -132,6 +132,20 @@ button:hover {
 </div>
 
 <script>
+let seconds = 0;
+let rewardPerMin = <?php echo $reward_per_min; ?>;
+let earned = 0;
+
+// ✅ TRACK TIME + EARNINGS
+setInterval(() => {
+    seconds++;
+    document.getElementById("time").innerText = seconds;
+
+    earned = (seconds / 60) * rewardPerMin;
+    document.getElementById("earnings").innerText = earned.toFixed(4);
+}, 1000);
+
+// ✅ CLAIM REWARD
 function claimReward() {
 
     if (earned <= 0) {
@@ -151,15 +165,15 @@ function claimReward() {
 
         if (data.status === "success") {
 
-            // ✅ Update navbar balance instantly
+            // 🔥 Update navbar balance instantly
             const navBalance = document.getElementById("navBalance");
             if (navBalance) {
-                navBalance.innerText = "$" + data.new_balance;
+                navBalance.innerText = "<?php echo $currency ?? '$'; ?>" + data.new_balance;
             }
 
             alert(data.message);
 
-            // RESET GAME STATS
+            // RESET
             seconds = 0;
             earned = 0;
             document.getElementById("time").innerText = 0;
