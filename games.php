@@ -10,69 +10,110 @@ if (!isset($conn)) {
     $conn = $db->connect();
 }
 
-/* =========================
-   AJAX EARNING SYSTEM
-========================= */
-
-if (isset($_POST['earn_game_id'])) {
+/*
+|--------------------------------------------------------------------------
+| LIVE EARNING SYSTEM
+|--------------------------------------------------------------------------
+*/
+if (
+    isset($_POST['earn_game_id']) &&
+    isset($_SESSION['user_id'])
+) {
 
     header('Content-Type: application/json');
 
-    if (!isset($_SESSION['user_id'])) {
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'Login required'
-        ]);
-        exit;
-    }
+    $gameId = (int) $_POST['earn_game_id'];
+    $userId = (int) $_SESSION['user_id'];
 
-    $userId = intval($_SESSION['user_id']);
-    $gameId = intval($_POST['earn_game_id']);
+    /*
+    |--------------------------------------------------------------------------
+    | FETCH GAME RPM
+    |--------------------------------------------------------------------------
+    */
+    $stmt = $conn->prepare("
+        SELECT reward_per_min
+        FROM games
+        WHERE id = ?
+        LIMIT 1
+    ");
 
-    // Fetch game RPM
-    $stmt = $conn->prepare("SELECT reward_per_min FROM games WHERE id = ? AND status = 1 LIMIT 1");
     $stmt->execute([$gameId]);
+
     $game = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$game) {
+
         echo json_encode([
             'status' => 'error',
             'message' => 'Game not found'
         ]);
+
         exit;
+
     }
 
-    $rpm = floatval($game['reward_per_min']);
+    /*
+    |--------------------------------------------------------------------------
+    | CALCULATE 5 SECOND REWARD
+    |--------------------------------------------------------------------------
+    */
+    $rpm = (float) $game['reward_per_min'];
 
-    // Every 5 seconds:
-    // reward = rpm / 12
-    $reward = $rpm / 12;
+    $earnAmount = $rpm / 12;
 
-    // Update user balance
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE USER BALANCE
+    |--------------------------------------------------------------------------
+    */
     $stmt = $conn->prepare("
-        UPDATE users 
-        SET balance = balance + ? 
+        UPDATE users
+        SET balance = balance + ?
         WHERE id = ?
+        LIMIT 1
     ");
-    $stmt->execute([$reward, $userId]);
 
-    // Fetch updated balance
-    $stmt = $conn->prepare("SELECT balance FROM users WHERE id = ? LIMIT 1");
+    $stmt->execute([
+        $earnAmount,
+        $userId
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | FETCH UPDATED BALANCE
+    |--------------------------------------------------------------------------
+    */
+    $stmt = $conn->prepare("
+        SELECT balance
+        FROM users
+        WHERE id = ?
+        LIMIT 1
+    ");
+
     $stmt->execute([$userId]);
+
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     echo json_encode([
         'status' => 'success',
-        'earned' => number_format($reward, 8, '.', ''),
+        'amount' => number_format($earnAmount, 8, '.', ''),
         'balance' => number_format($user['balance'], 8, '.', '')
     ]);
 
     exit;
+
 }
 
-// Fetch active games
-$stmt = $conn->prepare("SELECT * FROM games WHERE status = 1 ORDER BY id DESC");
+/* FETCH ACTIVE GAMES */
+$stmt = $conn->prepare("
+    SELECT *
+    FROM games
+    WHERE status = 1
+    ORDER BY id DESC
+");
+
 $stmt->execute();
+
 $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 ?>
@@ -80,28 +121,27 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
     <title>GameWARE - Play & Earn</title>
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
 
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="assets/favicon.png" />
+
+    <!-- Main CSS -->
     <link rel="stylesheet" href="style.css" />
 
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
 
         *{
             box-sizing:border-box;
-        }
-
-        body{
-            margin:0;
-            font-family:Arial, sans-serif;
-            background:#f5f7fb;
         }
 
         .container{
@@ -131,7 +171,7 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .grid{
             display:grid;
-            grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
             gap:22px;
             margin-top:20px;
         }
@@ -157,6 +197,7 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .card-body{
             padding:18px 20px;
+            flex:1;
         }
 
         .play-btn{
@@ -170,226 +211,269 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
             text-decoration:none;
             font-weight:600;
             margin-top:15px;
-            border:none;
-            cursor:pointer;
         }
 
         .play-btn:hover{
             background:#0088cc;
         }
 
-        .game-frame-wrap{
-            width:100%;
-            margin-top:30px;
-            display:none;
-        }
-
-        .game-frame{
-            width:100%;
-            height:80vh;
-            border:none;
-            border-radius:15px;
-            background:#000;
-        }
-
         .earning-box{
-            margin-top:20px;
-            background:#fff;
-            padding:18px;
+            position:fixed;
+            right:20px;
+            bottom:20px;
+            background:#111;
+            color:#fff;
+            padding:15px 18px;
             border-radius:12px;
-            box-shadow:0 4px 10px rgba(0,0,0,0.05);
+            z-index:99999;
+            box-shadow:0 10px 25px rgba(0,0,0,0.25);
             display:none;
         }
 
-        .earning-box h3{
-            margin:0 0 10px;
-        }
-
-        .stop-btn{
-            margin-top:15px;
-            background:#ff3b30;
-            color:#fff;
-            border:none;
-            padding:12px 20px;
-            border-radius:10px;
-            cursor:pointer;
-            font-weight:600;
-        }
-
-        .stop-btn:hover{
-            background:#d93025;
+        .earning-box strong{
+            color:#00ff99;
         }
 
     </style>
+
 </head>
 
 <body>
 
-<div class="container">
+<div class="loader" id="loader" style="display:none;">
+    Loading Game...
+</div>
 
-    <div class="page-header">
-        <h1>
-            <i class="fa-solid fa-gamepad"></i>
-            GameWARE
-        </h1>
-
-        <p>
-            Play games and earn automatically every 5 seconds
-        </p>
+<!-- LIVE EARNING DISPLAY -->
+<div class="earning-box" id="earningBox">
+    <div>
+        Earned:
+        <strong id="earnedAmount">$0.00000000</strong>
     </div>
 
-    <?php if (!isset($_SESSION['user_id'])): ?>
+    <div style="margin-top:5px;">
+        Balance:
+        <strong id="userBalance">$0.00000000</strong>
+    </div>
+</div>
 
-        <div class="notice">
-            <i class="fa-solid fa-circle-info"></i>
-            <strong>Login required</strong>
-            to earn while playing.
+<main id="gameInput">
+
+    <div class="container">
+
+        <div class="page-header">
+
+            <h1>
+                <i class="fa-solid fa-gamepad"></i>
+                GameWARE
+            </h1>
+
+            <p>
+                Play games and earn • Powered by GameWARE
+            </p>
+
         </div>
 
-    <?php endif; ?>
+        <?php if (!isset($_SESSION['user_id'])): ?>
 
-    <!-- GAME LIST -->
-    <div class="grid" id="gamesGrid">
+            <div class="notice">
 
-        <?php if (count($games) > 0): ?>
+                <i class="fa-solid fa-circle-info"></i>
 
-            <?php foreach ($games as $game): ?>
+                <strong>
+                    Login required
+                </strong>
 
-                <div class="card">
+                to track playtime and earn rewards.
 
-                    <?php if (!empty($game['thumbnail'])): ?>
-
-                        <img
-                            src="<?= htmlspecialchars($game['thumbnail']) ?>"
-                            alt="<?= htmlspecialchars($game['name']) ?>"
-                        >
-
-                    <?php endif; ?>
-
-                    <div class="card-body">
-
-                        <h3>
-                            <?= htmlspecialchars($game['name']) ?>
-                        </h3>
-
-                        <p>
-                            Play and earn automatically.
-                        </p>
-
-                        <?php if (!empty($game['reward_per_min'])): ?>
-
-                            <strong style="color:#00aa00;">
-
-                                $<?= number_format($game['reward_per_min'], 4) ?>/min
-
-                            </strong>
-
-                        <?php endif; ?>
-
-                        <button
-                            class="play-btn"
-                            onclick="startGame(
-                                '<?= htmlspecialchars($game['crazygames_slug']) ?>',
-                                <?= $game['id'] ?>
-                            )"
-                        >
-                            <i class="fa-solid fa-play"></i>
-                            Play Now
-                        </button>
-
-                    </div>
-
-                </div>
-
-            <?php endforeach; ?>
-
-        <?php else: ?>
-
-            <p style="text-align:center; grid-column:1/-1; padding:80px 20px;">
-                No games available at the moment.
-            </p>
+            </div>
 
         <?php endif; ?>
 
+        <div class="grid">
+
+            <?php if (count($games) > 0): ?>
+
+                <?php foreach ($games as $game): ?>
+
+                    <div class="card">
+
+                        <?php if (!empty($game['thumbnail'])): ?>
+
+                            <img
+                                src="<?= htmlspecialchars($game['thumbnail']) ?>"
+                                alt="<?= htmlspecialchars($game['name']) ?>"
+                            >
+
+                        <?php endif; ?>
+
+                        <div class="card-body">
+
+                            <h3>
+                                <?= htmlspecialchars($game['name']) ?>
+                            </h3>
+
+                            <p>
+                                Play and earn based on time spent.
+                            </p>
+
+                            <?php if (!empty($game['reward_per_min'])): ?>
+
+                                <strong style="color:#00aa00;">
+
+                                    $<?= number_format($game['reward_per_min'], 4) ?>/min
+
+                                </strong>
+
+                            <?php endif; ?>
+
+                        </div>
+
+                        <div style="padding:0 20px 20px;">
+
+                            <a
+                                href="#"
+                                class="play-btn"
+                                onclick="loadGameWARE(
+                                    '<?= htmlspecialchars($game['crazygames_slug'] ?? '') ?>',
+                                    <?= $game['id'] ?>
+                                ); return false;"
+                            >
+
+                                <i class="fa-solid fa-play"></i>
+
+                                Play Now
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                <?php endforeach; ?>
+
+            <?php else: ?>
+
+                <p style="text-align:center;grid-column:1/-1;padding:80px 20px;">
+
+                    No games available at the moment.
+
+                </p>
+
+            <?php endif; ?>
+
+        </div>
+
     </div>
 
-    <!-- EARNING BOX -->
-    <div class="earning-box" id="earningBox">
+</main>
 
-        <h3>
-            <i class="fa-solid fa-coins"></i>
-            Earnings Active
-        </h3>
+<!-- SaneGames Scripts -->
+<script src="palmframe.js"></script>
 
-        <p>
-            Current Status:
-            <strong id="earningStatus">
-                Running...
-            </strong>
-        </p>
+<palmframe-widget project="w82cB8t3Jgv0"></palmframe-widget>
 
-        <p>
-            Total Balance:
-            <strong id="userBalance">
-                Loading...
-            </strong>
-        </p>
-
-        <button class="stop-btn" onclick="stopGame()">
-            Stop Playing
-        </button>
-
-    </div>
-
-    <!-- GAME FRAME -->
-    <div class="game-frame-wrap" id="gameWrap">
-
-        <iframe
-            id="gameFrame"
-            class="game-frame"
-            allowfullscreen
-        ></iframe>
-
-    </div>
-
-</div>
+<script src="main.js"></script>
 
 <script>
 
+let currentSessionId = null;
 let earningInterval = null;
 let currentGameId = null;
 
-function startGame(slug, gameId)
-{
+/*
+|--------------------------------------------------------------------------
+| START GAME
+|--------------------------------------------------------------------------
+*/
+function loadGameWARE(slug, gameId) {
 
-    <?php if (!isset($_SESSION['user_id'])): ?>
+    if (!slug) {
 
-        alert("Please login first.");
+        alert("This game is not properly configured (missing slug).");
+
         return;
 
-    <?php endif; ?>
+    }
 
     currentGameId = gameId;
 
-    // Show game frame
-    document.getElementById('gameWrap').style.display = 'block';
+    /*
+    |--------------------------------------------------------------------------
+    | TRACK PLAY START
+    |--------------------------------------------------------------------------
+    */
+    fetch('track_play.php', {
 
-    // Show earning box
-    document.getElementById('earningBox').style.display = 'block';
+        method: 'POST',
 
-    // Load game
-    document.getElementById('gameFrame').src =
-        "https://games.crazygames.com/en_US/" + slug + "/index.html";
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
 
-    // Clear previous interval
+        body: `game_id=${gameId}`
+
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.status === 'success') {
+
+            currentSessionId = data.session_id;
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | START EARNING
+        |--------------------------------------------------------------------------
+        */
+        startEarning(gameId);
+
+    })
+    .catch(() => {
+
+        /*
+        |--------------------------------------------------------------------------
+        | START EARNING EVEN IF TRACK FAILS
+        |--------------------------------------------------------------------------
+        */
+        startEarning(gameId);
+
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOAD GAME
+    |--------------------------------------------------------------------------
+    */
+    const currentUrl = new URL(window.location.href);
+
+    currentUrl.search = `?game=${encodeURIComponent(slug)}`;
+
+    window.location.href = currentUrl.toString();
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| LIVE EARNING SYSTEM
+|--------------------------------------------------------------------------
+*/
+function startEarning(gameId) {
+
     if (earningInterval) {
+
         clearInterval(earningInterval);
+
     }
 
-    // Start earning every 5 seconds
-    earningInterval = setInterval(function(){
+    document.getElementById('earningBox').style.display = 'block';
 
-        fetch(window.location.href, {
+    earningInterval = setInterval(() => {
+
+        fetch(window.location.pathname, {
 
             method: 'POST',
 
@@ -397,21 +481,31 @@ function startGame(slug, gameId)
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
 
-            body: 'earn_game_id=' + currentGameId
+            body: `earn_game_id=${gameId}`
 
         })
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => {
 
-            if(data.status === 'success'){
+            if (data.status === 'success') {
 
-                document.getElementById('earningStatus').innerHTML =
-                    'Earned $' + data.earned + ' this cycle';
+                document.getElementById('earnedAmount').innerHTML =
+                    '$' + data.amount;
 
                 document.getElementById('userBalance').innerHTML =
                     '$' + data.balance;
 
+                console.log(
+                    'Earned: $' + data.amount +
+                    ' | Balance: $' + data.balance
+                );
+
             }
+
+        })
+        .catch(err => {
+
+            console.log(err);
 
         });
 
@@ -419,29 +513,30 @@ function startGame(slug, gameId)
 
 }
 
-function stopGame()
-{
 
-    // Stop interval
-    clearInterval(earningInterval);
+/*
+|--------------------------------------------------------------------------
+| AUTO END SESSION
+|--------------------------------------------------------------------------
+*/
+window.addEventListener('beforeunload', function() {
 
-    earningInterval = null;
+    if (earningInterval) {
 
-    // Hide game
-    document.getElementById('gameWrap').style.display = 'none';
+        clearInterval(earningInterval);
 
-    // Clear iframe
-    document.getElementById('gameFrame').src = '';
+    }
 
-    // Update status
-    document.getElementById('earningStatus').innerHTML =
-        'Stopped';
+    if (currentSessionId) {
 
-}
+        navigator.sendBeacon(
+            'end_play.php',
+            new URLSearchParams({
+                session_id: currentSessionId
+            })
+        );
 
-window.addEventListener('beforeunload', function(){
-
-    clearInterval(earningInterval);
+    }
 
 });
 
