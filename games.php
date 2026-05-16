@@ -54,7 +54,7 @@ if (
 
     /*
     |--------------------------------------------------------------------------
-    | CALCULATE 5 SECOND REWARD
+    | CALCULATE EARNING
     |--------------------------------------------------------------------------
     */
     $rpm = (float) $game['reward_per_min'];
@@ -120,19 +120,19 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 
     <title>GameWARE - Play & Earn</title>
 
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link rel="icon" type="image/png" href="assets/favicon.png">
 
     <!-- Main CSS -->
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css">
 
     <!-- Font Awesome -->
     <link rel="stylesheet"
@@ -142,6 +142,11 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         *{
             box-sizing:border-box;
+        }
+
+        body{
+            margin:0;
+            padding:0;
         }
 
         .container{
@@ -197,7 +202,6 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .card-body{
             padding:18px 20px;
-            flex:1;
         }
 
         .play-btn{
@@ -225,9 +229,10 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color:#fff;
             padding:15px 18px;
             border-radius:12px;
-            z-index:99999;
+            z-index:999999;
             box-shadow:0 10px 25px rgba(0,0,0,0.25);
             display:none;
+            min-width:220px;
         }
 
         .earning-box strong{
@@ -240,12 +245,14 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <body>
 
+<!-- LOADER -->
 <div class="loader" id="loader" style="display:none;">
     Loading Game...
 </div>
 
-<!-- LIVE EARNING DISPLAY -->
+<!-- LIVE EARNING BOX -->
 <div class="earning-box" id="earningBox">
+
     <div>
         Earned:
         <strong id="earnedAmount">$0.00000000</strong>
@@ -255,6 +262,7 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
         Balance:
         <strong id="userBalance">$0.00000000</strong>
     </div>
+
 </div>
 
 <main id="gameInput">
@@ -280,9 +288,7 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 <i class="fa-solid fa-circle-info"></i>
 
-                <strong>
-                    Login required
-                </strong>
+                <strong>Login required</strong>
 
                 to track playtime and earn rewards.
 
@@ -327,10 +333,6 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                             <?php endif; ?>
 
-                        </div>
-
-                        <div style="padding:0 20px 20px;">
-
                             <a
                                 href="#"
                                 class="play-btn"
@@ -354,7 +356,7 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             <?php else: ?>
 
-                <p style="text-align:center;grid-column:1/-1;padding:80px 20px;">
+                <p style="text-align:center;padding:60px 20px;">
 
                     No games available at the moment.
 
@@ -368,7 +370,7 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 </main>
 
-<!-- SaneGames Scripts -->
+<!-- GAME SCRIPTS -->
 <script src="palmframe.js"></script>
 
 <palmframe-widget project="w82cB8t3Jgv0"></palmframe-widget>
@@ -379,7 +381,6 @@ $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 let currentSessionId = null;
 let earningInterval = null;
-let currentGameId = null;
 
 /*
 |--------------------------------------------------------------------------
@@ -390,17 +391,22 @@ function loadGameWARE(slug, gameId) {
 
     if (!slug) {
 
-        alert("This game is not properly configured (missing slug).");
+        alert("Missing game slug.");
 
         return;
 
     }
 
-    currentGameId = gameId;
+    /*
+    |--------------------------------------------------------------------------
+    | SAVE GAME ID
+    |--------------------------------------------------------------------------
+    */
+    localStorage.setItem('earning_game_id', gameId);
 
     /*
     |--------------------------------------------------------------------------
-    | TRACK PLAY START
+    | TRACK PLAY
     |--------------------------------------------------------------------------
     */
     fetch('track_play.php', {
@@ -421,35 +427,26 @@ function loadGameWARE(slug, gameId) {
 
             currentSessionId = data.session_id;
 
+            localStorage.setItem(
+                'current_session_id',
+                data.session_id
+            );
+
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | START EARNING
-        |--------------------------------------------------------------------------
-        */
-        startEarning(gameId);
-
-    })
-    .catch(() => {
-
-        /*
-        |--------------------------------------------------------------------------
-        | START EARNING EVEN IF TRACK FAILS
-        |--------------------------------------------------------------------------
-        */
-        startEarning(gameId);
 
     });
 
     /*
     |--------------------------------------------------------------------------
-    | LOAD GAME
+    | REDIRECT TO GAME
     |--------------------------------------------------------------------------
     */
     const currentUrl = new URL(window.location.href);
 
-    currentUrl.search = `?game=${encodeURIComponent(slug)}`;
+    currentUrl.searchParams.set(
+        'game',
+        slug
+    );
 
     window.location.href = currentUrl.toString();
 
@@ -458,19 +455,38 @@ function loadGameWARE(slug, gameId) {
 
 /*
 |--------------------------------------------------------------------------
-| LIVE EARNING SYSTEM
+| AUTO START EARNING
 |--------------------------------------------------------------------------
 */
-function startEarning(gameId) {
+window.addEventListener('load', function() {
 
-    if (earningInterval) {
+    const gameId = localStorage.getItem(
+        'earning_game_id'
+    );
 
-        clearInterval(earningInterval);
-
+    /*
+    |--------------------------------------------------------------------------
+    | NO ACTIVE GAME
+    |--------------------------------------------------------------------------
+    */
+    if (!gameId) {
+        return;
     }
 
-    document.getElementById('earningBox').style.display = 'block';
+    /*
+    |--------------------------------------------------------------------------
+    | SHOW EARNING BOX
+    |--------------------------------------------------------------------------
+    */
+    document.getElementById(
+        'earningBox'
+    ).style.display = 'block';
 
+    /*
+    |--------------------------------------------------------------------------
+    | START INTERVAL
+    |--------------------------------------------------------------------------
+    */
     earningInterval = setInterval(() => {
 
         fetch(window.location.pathname, {
@@ -487,43 +503,46 @@ function startEarning(gameId) {
         .then(res => res.json())
         .then(data => {
 
+            console.log(data);
+
             if (data.status === 'success') {
 
-                document.getElementById('earnedAmount').innerHTML =
+                document.getElementById(
+                    'earnedAmount'
+                ).innerHTML =
                     '$' + data.amount;
 
-                document.getElementById('userBalance').innerHTML =
+                document.getElementById(
+                    'userBalance'
+                ).innerHTML =
                     '$' + data.balance;
-
-                console.log(
-                    'Earned: $' + data.amount +
-                    ' | Balance: $' + data.balance
-                );
 
             }
 
         })
-        .catch(err => {
+        .catch(error => {
 
-            console.log(err);
+            console.log(error);
 
         });
 
     }, 5000);
 
-}
+});
 
 
 /*
 |--------------------------------------------------------------------------
-| AUTO END SESSION
+| STOP SESSION
 |--------------------------------------------------------------------------
 */
 window.addEventListener('beforeunload', function() {
 
     if (earningInterval) {
 
-        clearInterval(earningInterval);
+        clearInterval(
+            earningInterval
+        );
 
     }
 
