@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLINKO 2.0 — Steering Edition</title>
+ <!-- ➊ авто-рефреш раз в 60 секунд -->
+ <meta http-equiv="refresh" content="60">
+<style>
+:root{
+  --game-w:600px;--game-h:800px;
+  --primary:#e94560;--primary-light:#ff6b81;--gold:#ffd700;
+  --bg-1:#1a1a2e;--bg-2:#16213e;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;
+     background:linear-gradient(135deg,var(--bg-1),var(--bg-2));font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#fff}
+h1{margin:24px 0 14px;font-size:48px;letter-spacing:3px;color:var(--gold);
+   text-shadow:0 0 10px rgba(255,215,0,.7),0 0 20px rgba(255,215,0,.5);animation:glow 1.5s infinite alternate}
+@keyframes glow{from{text-shadow:0 0 10px rgba(255,215,0,.7),0 0 20px rgba(255,215,0,.5)}
+to{text-shadow:0 0 16px rgba(255,215,0,.9),0 0 32px rgba(255,215,0,.7)}}
+.wrapper{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+.game-container{position:relative;width:var(--game-w);height:var(--game-h);
+  border:2px solid var(--primary);border-radius:15px;background:linear-gradient(to bottom,#0f3460,#1a1a40);
+  box-shadow:0 0 30px rgba(0,0,0,.7),inset 0 0 20px rgba(233,69,96,.3);overflow:hidden}
+canvas{background:transparent;display:block}
+#plinkoCanvas{z-index:1}
+#glCanvas{z-index:2;position:absolute;top:0;left:0;pointer-events:none}
+#particles-js{position:absolute;inset:0;pointer-events:none;z-index:-1}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;
+         background:linear-gradient(135deg,rgba(15,52,96,.95),rgba(26,26,62,.95));z-index:10}
+.loading:after{content:"";width:50px;height:50px;border:5px solid var(--primary);border-top-color:var(--gold);
+               border-radius:50%;animation:spin 1s linear infinite;margin-left:15px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.side-panel{flex:0 0 240px;max-width:240px;background:rgba(0,0,0,.25);border:2px solid var(--primary);
+            border-radius:10px;padding:12px;box-shadow:0 0 20px rgba(0,0,0,.4)}
+#stats p{margin:4px 0 8px;font-size:17px}
+#stats table{width:100%;border-collapse:collapse}
+#stats th,#stats td{padding:6px;border-bottom:1px solid rgba(255,255,255,.2); white-space:nowrap;}
+#stats th{color:var(--gold);font-weight:600;text-align:left}
+.control-panel{margin-top:18px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center}
+input[type=text],input[type=number]{width:100%;padding:10px 14px;border:2px solid var(--primary);border-radius:8px;background:#0f3460;
+                 color:var(--gold);font-size:18px;outline:none}
+input::placeholder{color:#aaa}
+.drop-button-container{position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:5}
+button{padding:12px 25px;font-size:20px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;outline:none;
+       border:none;border-radius:8px;cursor:pointer;transition:.3s all;
+       background:linear-gradient(to bottom right,var(--primary),var(--primary-light));color:#fff;
+       box-shadow:0 5px 15px rgba(233,69,96,.5)}
+button:hover{background:linear-gradient(to bottom right,var(--primary-light),var(--primary));
+             transform:translateY(-3px);box-shadow:0 8px 20px rgba(233,69,96,.7)}
+button:active{transform:translateY(1px);box-shadow:0 2px 10px rgba(233,69,96,.5)}
+button:disabled{background:linear-gradient(to bottom,#888,#666);box-shadow:0 2px 5px rgba(0,0,0,.2);
+                cursor:not-allowed;opacity:.7;transform:none}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;visibility:hidden;transition:.3s}
+.modal-overlay.active{opacity:1;visibility:visible}
+.modal-content{background:linear-gradient(145deg,#0f3460,#1a1a40);border:3px solid var(--gold);border-radius:15px;
+              padding:30px;text-align:center;width:90%;max-width:400px;box-shadow:0 0 40px rgba(255,215,0,.4),
+              inset 0 0 20px rgba(255,215,0,.1);transform:scale(.8);transition:.4s}
+.modal-overlay.active .modal-content{transform:scale(1)}
+.prize-title{color:#fff;font-size:28px;margin-bottom:20px}
+.prize-value{font-size:48px;color:var(--gold);text-shadow:0 0 15px rgba(255,215,0,.7);margin:30px 0;animation:pulse 1.5s infinite alternate}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.05)}}
+.close-modal{margin-top:20px;background:linear-gradient(to bottom right,var(--gold),#ff9900);color:#000;font-weight:bold;padding:12px 30px}
+.close-modal:hover{background:linear-gradient(to bottom right,#ff9900,var(--gold))}
+.coins-animation{position:absolute;inset:0;pointer-events:none}
+.coin{position:absolute;width:30px;height:30px;background:radial-gradient(circle at 30% 30%,#fff,var(--gold),#ff9900);
+      border-radius:50%;border:2px solid #ff9900;box-shadow:0 0 10px rgba(255,215,0,.7);animation:fall 1.5s ease-in}
+@keyframes fall{0%{transform:translateY(-100vh) rotate(0deg);opacity:1}
+80%{opacity:1}100%{transform:translateY(50vh) rotate(360deg);opacity:0}}
+
+/* ---------- Rules panel (left side) ---------- */
+.rules-panel{
+  flex:0 0 440px;
+  max-width:440px;
+  background:rgba(255,255,255,0.08);
+  border:2px solid var(--primary);
+  border-radius:10px;
+  padding:16px 18px;
+  box-shadow:0 0 18px rgba(0,0,0,.28);
+  overflow:auto;
+}
+.rules-panel h2{
+  margin:0 0 10px;
+  font-size:22px;
+  letter-spacing:1px;
+  color:var(--gold);
+}
+.rules-panel p{margin:0 0 10px;line-height:1.35}
+.rules-panel .tip{font-size:14px;color:#ffb347}
+.rules-table{
+  width:100%;border-collapse:collapse;font-size:15px;margin:6px 0 10px;
+}
+.rules-table th,.rules-table td{
+  padding:4px 6px;border-bottom:1px solid rgba(255,255,255,.18);
+}
+.rules-table th{color:var(--gold);font-weight:600;text-align:left;font-size:14px}
+
+/* чтобы прокручивалась только таблица: */
+#stats{
+  max-height:420px;      /* подберите по вкусу */
+  overflow-y:auto;
+}
+
+/* …либо прокручиваем всю правую панель:  */
+.side-panel{
+  flex:0 0 400px;   /* базовая ширина */
+ max-width:400px;  /* не даст случайно сжаться */
+  background:rgba(0,0,0,.25);
+}
+</style>
+</head>
+<body>
+<div id="particles-js"></div>
+<h1>PLINKO</h1>
+
+
+<div class="wrapper">
+
+  <!-- ░░ 1. RULES (LEFT) ░░ -->
+  <aside class="rules-panel" aria-labelledby="rulesTitle">
+    <h2 id="rulesTitle">How to Play</h2>
+
+    <p>Pick any amount (minimum €1 000) and press <b>DROP BALL</b>.
+       The ball is pushed by the wind but secretly steered
+       into the bucket that matches your amount.</p>
+
+    <table class="rules-table" aria-describedby="rulesTitle">
+      <thead>
+        <tr><th>Entered amount (€)</th><th>Possible prizes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1 000 – 2 500</td><td>€50 · €100 · €125</td></tr>
+        <tr><td>2 501 – 4 000</td><td>€150 · €175 · €200</td></tr>
+        <tr><td>4 001 – 6 000</td><td>€225 · €250 · €300</td></tr>
+        <tr><td>6 001 – 8 000</td><td>€325 · €350 · €400</td></tr>
+        <tr><td>8 001 – 12 000</td><td>€450 · €550 · €600 · 🎁 Gift</td></tr>
+        <tr><td>12 001 – 17 500</td><td>€650 · €750 · €850 · 🎁 Gift</td></tr>
+        <tr><td>17 501 – 25 000</td><td>€900 · €1 100 · €1 200 · 🎁 Gift</td></tr>
+        <tr><td>25 001 – 100 000</td><td>€1 500</td></tr>
+        <tr><td>100 001 +</td><td><b>SPECIAL</b></td></tr>
+      </tbody>
+    </table>
+
+    <p class="tip">💡 Higher amounts unlock bigger prizes,
+       but the winning bucket is shuffled each round — try to
+       spot it!</p>
+  </aside>
+  <!-- ░░ END RULES ░░ -->
+
+
+  <!-- ░░ 2. GAME (CENTER) ░░ -->
+  <div class="game-container">
+    <div class="drop-button-container">
+      <button id="startButton">DROP BALL</button>
+    </div>
+
+    <canvas id="plinkoCanvas" width="600" height="800" aria-hidden="true"></canvas>
+    <canvas id="glCanvas"     width="600" height="800"></canvas>
+    <div id="loading" class="loading">Loading physics engine…</div>
+  </div>
+  <!-- ░░ END GAME ░░ -->
+
+
+  <!-- ░░ 3. STATS + INPUTS (RIGHT) ░░ -->
+  <aside class="side-panel">
+    <div id="stats"></div>
+
+    <div class="control-panel">
+      <label id="nameDesc" style="display:none">Enter your name</label>
+      <input id="playerName" type="text" placeholder="Your name" aria-describedby="nameDesc">
+
+      <label id="amountDesc" style="display:none">Enter amount</label>
+      <input id="amountInput" type="number" placeholder="Amount (€)"
+             aria-describedby="amountDesc" min="1" step="1">
+    </div>
+  </aside>
+  <!-- ░░ END SIDE PANEL ░░ -->
+
+</div>
+
+
+<!--  Modal -->
+<div id="prizeModal" class="modal-overlay">
+  <div class="modal-content">
+    <h2 class="prize-title">CONGRATULATIONS!</h2>
+    <div id="winnerName"></div>
+    <div class="prize-value" id="prizeValue"></div>
+    <button class="close-modal" id="closeModal">PLAY AGAIN</button>
+    <div class="coins-animation" id="coinsAnimation"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.18.0/matter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+<script>
+/* ---------- Background Particles ---------- */
+particlesJS('particles-js',{
+  particles:{number:{value:30,density:{enable:true,value_area:800}},color:{value:'#e94560'},
+  shape:{type:'circle'},opacity:{value:0.5,random:true,anim:{enable:true,speed:1,opacity_min:0.1}},
+  size:{value:3,random:true,anim:{enable:true,speed:2,size_min:0.1}},
+  line_linked:{enable:true,distance:150,color:'#ffd700',opacity:0.2,width:1},
+  move:{enable:true,speed:1,random:true,out_mode:'out'}},
+  interactivity:{events:{onhover:{enable:true,mode:'grab'},onclick:{enable:true,mode:'push'},resize:true},
+  modes:{grab:{distance:140,line_linked:{opacity:0.5}},push:{particles_nb:4}}},retina_detect:true});
+
+/* ---------- CONFIG ---------- */
+const CANVAS_WIDTH=600, CANVAS_HEIGHT=800;
+const BUCKET_COUNT=9, BUCKET_HEIGHT=100;
+const BALL_RADIUS=9, GRAVITY=0.3, BOUNCE=0.8, FRICTION=0.02;
+const PIN_COLS=12;
+const PIN_ROWS=Math.floor((CANVAS_HEIGHT-200-BUCKET_HEIGHT)/60);
+const PIN_RADIUS=4;
+const xGap=CANVAS_WIDTH/(PIN_COLS+1);
+const yGap=(CANVAS_HEIGHT-200-BUCKET_HEIGHT)/(PIN_ROWS+1);
+const GUIDE_ZONE_Y=CANVAS_HEIGHT*0.55;
+const BUCKET_WIDTH=CANVAS_WIDTH/BUCKET_COUNT;
+const STEER_FORCE=0.00014;
+const WIND_MAG=0.00022;
+const WIND_FADE_Y=GUIDE_ZONE_Y;
+const WIND_FREQ=1.1;
+let windPhase=Math.random()*Math.PI*2;
+
+/* ---------- random slot order ---------- */
+const SLOT_ORDER=Array.from({length:BUCKET_COUNT},(_,i)=>i).sort(()=>Math.random()-0.5);
+
+const bucketConfigs=[
+  {min:1000,max:2500,prizes:[50,100,125]},
+  {min:2501,max:4000,prizes:[150,175,200]},
+  {min:4001,max:6000,prizes:[225,250,300]},
+  {min:6001,max:8000,prizes:[325,350,400]},
+  {min:8001,max:12000,prizes:[450,550,600,'Gift']},
+  {min:12001,max:17500,prizes:[650,750,850,'Gift']},
+  {min:17501,max:25000,prizes:[900,1100,1200,'Gift']},
+  {min:25001,max:100000,prizes:[1500]},
+  {min:100001,max:Infinity,prizes:['Special']}
+];
+
+/* ---------- Matter.js WORLD ---------- */
+const {Engine,Render,World,Bodies,Body,Events}=Matter;
+const engine=Engine.create(); engine.world.gravity.y=GRAVITY;
+const render=Render.create({
+  element:document.querySelector('.game-container'),
+  engine,
+  canvas:document.getElementById('plinkoCanvas'),
+  options:{width:CANVAS_WIDTH,height:CANVAS_HEIGHT,wireframes:false,background:'transparent'}
+});
+
+/* ---------- DOM ---------- */
+const startBtn=document.getElementById('startButton');
+const nameInput=document.getElementById('playerName');
+const amountInput=document.getElementById('amountInput');
+const statsBox=document.getElementById('stats');
+const modal=document.getElementById('prizeModal');
+const winnerName=document.getElementById('winnerName');
+const prizeValue=document.getElementById('prizeValue');
+const closeModal=document.getElementById('closeModal');
+const coinsAnimation=document.getElementById('coinsAnimation');
+
+/* ---------- STATE ---------- */
+let ball=null, gameActive=false, prizeGiven=false, gameCount=0;
+let currentGame=null;
+const walls=[], pins=[], buckets=[];
+
+
+
+/* ---------- AUDIO ---------- */
+const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+function playTone(freq,dur=0.1,vol=0.05,type='sine'){
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type; o.frequency.value=freq; g.gain.value=vol;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+dur);
+}
+
+/* ---------- WORLD BUILDERS ---------- */
+function createWalls(){
+  const o={isStatic:true,render:{fillStyle:'#16213e',strokeStyle:'#e94560',lineWidth:1}};
+  walls.push(
+    Bodies.rectangle(-10,CANVAS_HEIGHT/2,20,CANVAS_HEIGHT,o),
+    Bodies.rectangle(CANVAS_WIDTH+10,CANVAS_HEIGHT/2,20,CANVAS_HEIGHT,o),
+    Bodies.rectangle(CANVAS_WIDTH/2,-10,CANVAS_WIDTH,20,o),
+    Bodies.rectangle(CANVAS_WIDTH/2,CANVAS_HEIGHT+10,CANVAS_WIDTH+40,20,o)
+  );
+  World.add(engine.world,walls);
+}
+
+function createPins(){
+  const o={isStatic:true,restitution:0.9,friction:0.05,render:{fillStyle:'#e94560',strokeStyle:'#ff6b81',lineWidth:1}};
+  for(let r=0;r<PIN_ROWS;r++){
+    const cols=r%2===0?PIN_COLS:PIN_COLS-1;
+    const off=r%2===0?0:xGap/2;
+    const y=120+yGap*(r+1);
+    for(let c=0;c<cols;c++){
+      const x=xGap*(c+1)+off;
+      pins.push(Bodies.circle(x,y,PIN_RADIUS,o));
+    }
+  }
+  World.add(engine.world,pins);
+}
+
+function createBuckets(){
+  const bW=BUCKET_WIDTH, bY=CANVAS_HEIGHT-BUCKET_HEIGHT/2;
+  for(let i=1;i<BUCKET_COUNT;i++){
+    World.add(engine.world,Bodies.rectangle(i*bW,bY,6,BUCKET_HEIGHT,{isStatic:true,render:{fillStyle:'#e94560'}}));
+    World.add(engine.world,Bodies.circle(i*bW,CANVAS_HEIGHT-BUCKET_HEIGHT-60,PIN_RADIUS,{isStatic:true,render:{fillStyle:'#e94560'}}));
+  }
+
+  /* sensors с логическим индексом */
+  for(let phys=0; phys<BUCKET_COUNT; phys++){
+    const logical=SLOT_ORDER[phys];
+    const sensor=Bodies.rectangle(phys*bW+bW/2,CANVAS_HEIGHT-5,bW-8,10,
+      {isStatic:true,isSensor:true,bucketLogical:logical,render:{fillStyle:'transparent'}});
+    buckets.push(sensor);
+    World.add(engine.world,sensor);
+  }
+
+  /* подписи призов */
+  const ctx=render.canvas.getContext('2d');
+  Events.on(render,'afterRender',()=>{
+    ctx.font='bold 16px Segoe UI'; ctx.textAlign='center'; const lh=18;
+    for(let phys=0; phys<BUCKET_COUNT; phys++){
+      const logical=SLOT_ORDER[phys];
+      const {prizes}=bucketConfigs[logical];
+      const x=phys*bW+bW/2;
+      for(let j=0;j<prizes.length;j++){
+        const p=prizes[j];
+        const grad=ctx.createLinearGradient(x-25,0,x+25,0);
+        grad.addColorStop(0,'#ffd700'); grad.addColorStop(1,'#ffaa00');
+        ctx.fillStyle=grad; ctx.strokeStyle='#000'; ctx.lineWidth=2;
+        ctx.strokeText(p,x,CANVAS_HEIGHT-15-lh*(prizes.length-1-j));
+        ctx.fillText  (p,x,CANVAS_HEIGHT-15-lh*(prizes.length-1-j));
+      }
+    }
+  });
+}
+
+/* ---------- WEBGL FIREWORKS ---------- */
+const glCanvas=document.getElementById('glCanvas');
+const gl=glCanvas.getContext('webgl',{alpha:true,antialias:true});
+let prog,posBuf,colBuf,particles=[];
+function compile(t,s){const sh=gl.createShader(t); gl.shaderSource(sh,s); gl.compileShader(sh); return sh;}
+function initGL(){
+  const vs = `
+    attribute vec2 aPos;
+    attribute vec4 aColor;
+    varying   vec4 vColor;
+
+    void main(){
+      gl_PointSize = 4.0;
+      vColor       = aColor;
+      gl_Position  = vec4(aPos, 0.0, 1.0);
+    }
+  `;
+
+  const fs = `
+    precision mediump float;
+    varying vec4 vColor;
+
+    void main(){
+      float d = distance(gl_PointCoord, vec2(0.5));
+      if(d > 0.5) discard;
+      gl_FragColor = vColor;
+    }
+  `;
+
+  const compile = (type, src) => {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)){
+      console.error(gl.getShaderInfoLog(sh));
+      return null;
+    }
+    return sh;
+  };
+
+  prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER,   vs));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){
+    console.error(gl.getProgramInfoLog(prog));
+    prog = null;            // не даём остальному коду упасть
+    return;
+  }
+
+  posBuf = gl.createBuffer();
+  colBuf = gl.createBuffer();
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+}
+function addFirework(cx,cy){
+  for(let i=0;i<120;i++){
+    const a=Math.random()*Math.PI*2, s=Math.random()*0.02+0.01;
+    particles.push({x:cx/CANVAS_WIDTH*2-1,y:cy/CANVAS_HEIGHT*2-1,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,col:[1,Math.random()*0.5+0.5,0,1]});
+  }
+}
+function animateGL(){
+  requestAnimationFrame(animateGL);
+  if(!prog) return;
+  particles=particles.filter(p=>p.life>0);
+  particles.forEach(p=>{p.x+=p.vx; p.y+=p.vy; p.vy-=0.0004; p.life-=0.006; p.col[3]=p.life;});
+  const pos=[], col=[];
+  particles.forEach(p=>{pos.push(p.x,p.y); col.push(...p.col);});
+  gl.viewport(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER,posBuf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pos),gl.DYNAMIC_DRAW);
+  const aPos=gl.getAttribLocation(prog,'aPos'); gl.enableVertexAttribArray(aPos); gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,colBuf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(col),gl.DYNAMIC_DRAW);
+  const aCol=gl.getAttribLocation(prog,'aColor'); gl.enableVertexAttribArray(aCol); gl.vertexAttribPointer(aCol,4,gl.FLOAT,false,0,0);
+  gl.drawArrays(gl.POINTS,0,pos.length/2);
+}
+
+/* ---------- STORAGE & STATS ---------- */
+const LS_KEY='plinkoScores';
+const loadScores=()=>{try{return JSON.parse(localStorage.getItem(LS_KEY))||[]}catch{return[];}};
+function saveScore(name,amount,prize){
+  const arr=loadScores(); arr.push({name,amount,prize,date:Date.now()});
+  localStorage.setItem(LS_KEY,JSON.stringify(arr));
+}
+function updateStats(){
+  const list = loadScores().sort((a,b)=>parseFloat(b.prize)-parseFloat(a.prize));  const played=localStorage.getItem('plinkoPlayed')||0;
+  let html=`<p>Total games: <b>${played}</b></p><table><thead><tr><th>#</th><th>Name</th><th>Amount (€)</th><th>Prize</th></tr></thead><tbody>`;
+  list.forEach((r,i)=>{
+    const amountDisp=r.amount!==undefined?`€${r.amount}`:'-';
+    html+=`<tr><td>${i+1}</td><td>${r.name}</td><td>${amountDisp}</td><td>${r.prize}</td></tr>`;
+  });
+  html+='</tbody></table>'; statsBox.innerHTML=html;
+}
+
+/* ---------- HELPERS ---------- */
+function createCoins(){
+  coinsAnimation.innerHTML='';
+  for(let i=0;i<20;i++){
+    const coin=document.createElement('div'); coin.className='coin';
+    coin.style.left=Math.random()*100+'%'; coin.style.animationDelay=Math.random()*0.5+'s';
+    coinsAnimation.appendChild(coin);
+  }
+}
+function showModal(player,prize){
+  winnerName.textContent=player;
+  prizeValue.textContent=prize+' 🪙';
+  createCoins(); modal.classList.add('active');
+}
+const hideModal=()=>{modal.classList.remove('active'); startBtn.disabled=false;};
+closeModal.addEventListener('click',hideModal);
+const removeBall=()=>{if(ball){World.remove(engine.world,ball); ball=null;}};
+
+/* ---------- BALL ---------- */
+function createBall(dropX){
+  const tex=document.createElement('canvas'); tex.width=tex.height=BALL_RADIUS*8;
+  const c=tex.getContext('2d');
+  const grad=c.createRadialGradient(4*BALL_RADIUS,4*BALL_RADIUS,0,4*BALL_RADIUS,4*BALL_RADIUS,4*BALL_RADIUS);
+  grad.addColorStop(0,'#ffffff'); grad.addColorStop(0.2,'#fffcdb'); grad.addColorStop(0.5,'#ffd700');
+  grad.addColorStop(0.8,'#ff9900'); grad.addColorStop(1,'#ff6600');
+  c.fillStyle=grad; c.beginPath(); c.arc(4*BALL_RADIUS,4*BALL_RADIUS,4*BALL_RADIUS,0,Math.PI*2); c.fill();
+  ball=Bodies.circle(dropX,60,BALL_RADIUS,{restitution:BOUNCE,friction:FRICTION,frictionAir:0.01,density:0.08,
+        render:{sprite:{texture:tex.toDataURL(),xScale:0.5,yScale:0.5}}});
+  World.add(engine.world,ball);
+}
+
+/* ---------- GAMEPLAY ---------- */
+const findBucket=amount=>bucketConfigs.findIndex(cfg=>amount>=cfg.min&&amount<=cfg.max);
+
+function startGame(){
+  if(gameActive) return;
+  const player=nameInput.value.trim()||'Player';
+  const amount=parseFloat(amountInput.value)||0;
+  if(amount<1000){alert('Введите сумму €1000 или выше');return;}
+
+  /* логический и физический индекс */
+  const logicalIdx=findBucket(amount);
+  if(logicalIdx===-1){alert('No bucket for this amount');return;}
+  const physIdx=SLOT_ORDER.indexOf(logicalIdx);
+
+  const prizesArray=bucketConfigs[logicalIdx].prizes;
+  const prize=prizesArray[Math.floor(Math.random()*prizesArray.length)];
+
+  currentGame={
+    prize,
+    logicalIdx,
+    amount,
+    targetX: physIdx*BUCKET_WIDTH + BUCKET_WIDTH/2
+  };
+
+  removeBall();
+  createBall(currentGame.targetX);
+  gameActive=true; startBtn.disabled=true; prizeGiven=false;
+}
+
+function awardPrize(){
+  const player=nameInput.value.trim()||'Player';
+  const {prize,amount}=currentGame;
+  setTimeout(()=>showModal(player,prize),400);
+  saveScore(player,amount,prize);
+  localStorage.setItem('plinkoPlayed',++gameCount);
+  updateStats();
+}
+
+/* ---------- COLLISIONS ---------- */
+Events.on(engine,'collisionStart',e=>{
+  e.pairs.forEach(pair=>{
+    if(!ball) return;
+    const involves=pair.bodyA===ball||pair.bodyB===ball;
+    if(involves){
+      const sensor=buckets.find(b=>b===pair.bodyA||b===pair.bodyB);
+      if(sensor && sensor.bucketLogical===currentGame.logicalIdx && !prizeGiven){
+        prizeGiven=true; awardPrize();
+        Body.setVelocity(ball,{x:0,y:0}); ball.isStatic=true;
+        addFirework(sensor.position.x,sensor.position.y);
+        [440,523,659].forEach((f,i)=>setTimeout(()=>playTone(f,0.2,0.06,'triangle'),i*180));
+        setTimeout(()=>removeBall(),600); gameActive=false;
+      }
+      const other=pair.bodyA===ball?pair.bodyB:pair.bodyA;
+      if(pins.includes(other)){
+        const vel=Math.hypot(ball.velocity.x,ball.velocity.y);
+        playTone(350+Math.random()*250,0.1,0.04+Math.min(1,vel/10)*0.04);
+      }else playTone(300+Math.random()*300,0.1,0.03);
+    }
+  });
+});
+
+/* ---------- STEERING 2.0 ---------- */
+Events.on(engine,'beforeUpdate',()=>{
+  if(!ball||!gameActive) return;
+  const t=engine.timing.timestamp/1000;
+  const fade=Math.max(0,(WIND_FADE_Y-ball.position.y)/WIND_FADE_Y);
+  const wind=Math.sin(t*WIND_FREQ+windPhase)*WIND_MAG*fade;
+  Body.applyForce(ball,ball.position,{x:wind,y:0});
+
+  if(ball.position.y>GUIDE_ZONE_Y){
+    const dx=currentGame.targetX-ball.position.x;
+    const gain=1+2*Math.min(1,Math.abs(dx)/(BUCKET_WIDTH*0.5));
+    Body.applyForce(ball,ball.position,{x:STEER_FORCE*gain*dx,y:0});
+  }
+
+  if(Math.hypot(ball.velocity.x,ball.velocity.y)<0.05)
+    Body.applyForce(ball,ball.position,{x:(Math.random()-0.5)*0.005,y:0.02});
+});
+
+/* ---------- INIT ---------- */
+window.addEventListener('load',()=>{
+  setTimeout(()=>{document.getElementById('loading').style.opacity='0';
+     setTimeout(()=>document.getElementById('loading').remove(),500);},800);
+  createWalls(); createPins(); createBuckets();
+  Engine.run(engine); Render.run(render);
+  initGL(); animateGL();
+  updateStats(); gameCount=+(localStorage.getItem('plinkoPlayed')||0);
+});
+startBtn.addEventListener('click',startGame);
+document.addEventListener('keydown',e=>{
+  if((e.key===' '||e.code==='Space')&&!gameActive&&!startBtn.disabled){e.preventDefault();startGame();}
+});
+closeModal.addEventListener('click',hideModal);
+</script>
+</body>
+</html>
