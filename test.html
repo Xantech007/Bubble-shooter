@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PLINKO 2.0 — Steering Edition</title>
- <!-- ➊ авто-рефреш раз в 60 секунд -->
+ <!-- ➊ Auto-refresh every 60 seconds -->
  <meta http-equiv="refresh" content="60">
 <style>
 :root{
@@ -96,16 +96,16 @@ button:disabled{background:linear-gradient(to bottom,#888,#666);box-shadow:0 2px
 }
 .rules-table th{color:var(--gold);font-weight:600;text-align:left;font-size:14px}
 
-/* чтобы прокручивалась только таблица: */
+/* Scrollable stats table */
 #stats{
-  max-height:420px;      /* подберите по вкусу */
+  max-height:420px;
   overflow-y:auto;
 }
 
-/* …либо прокручиваем всю правую панель:  */
+/* Side panel container */
 .side-panel{
-  flex:0 0 400px;   /* базовая ширина */
- max-width:400px;  /* не даст случайно сжаться */
+  flex:0 0 400px;
+  max-width:400px;
   background:rgba(0,0,0,.25);
 }
 </style>
@@ -121,24 +121,24 @@ button:disabled{background:linear-gradient(to bottom,#888,#666);box-shadow:0 2px
   <aside class="rules-panel" aria-labelledby="rulesTitle">
     <h2 id="rulesTitle">How to Play</h2>
 
-    <p>Pick any amount (minimum €1 000) and press <b>DROP BALL</b>.
+    <p>Pick any amount (minimum GH₵ 1,000) and press <b>DROP BALL</b>.
        The ball is pushed by the wind but secretly steered
        into the bucket that matches your amount.</p>
 
     <table class="rules-table" aria-describedby="rulesTitle">
       <thead>
-        <tr><th>Entered amount (€)</th><th>Possible prizes</th></tr>
+        <tr><th>Entered amount (GH₵)</th><th>Possible prizes</th></tr>
       </thead>
       <tbody>
-        <tr><td>1 000 – 2 500</td><td>€50 · €100 · €125</td></tr>
-        <tr><td>2 501 – 4 000</td><td>€150 · €175 · €200</td></tr>
-        <tr><td>4 001 – 6 000</td><td>€225 · €250 · €300</td></tr>
-        <tr><td>6 001 – 8 000</td><td>€325 · €350 · €400</td></tr>
-        <tr><td>8 001 – 12 000</td><td>€450 · €550 · €600 · 🎁 Gift</td></tr>
-        <tr><td>12 001 – 17 500</td><td>€650 · €750 · €850 · 🎁 Gift</td></tr>
-        <tr><td>17 501 – 25 000</td><td>€900 · €1 100 · €1 200 · 🎁 Gift</td></tr>
-        <tr><td>25 001 – 100 000</td><td>€1 500</td></tr>
-        <tr><td>100 001 +</td><td><b>SPECIAL</b></td></tr>
+        <tr><td>1,000 – 2,500</td><td>GH₵50 · GH₵100 · GH₵125</td></tr>
+        <tr><td>2,501 – 4,000</td><td>GH₵150 · GH₵175 · GH₵200</td></tr>
+        <tr><td>4,001 – 6,000</td><td>GH₵225 · GH₵250 · GH₵300</td></tr>
+        <tr><td>6,001 – 8,000</td><td>GH₵325 · GH₵350 · GH₵400</td></tr>
+        <tr><td>8,001 – 12,000</td><td>GH₵450 · GH₵550 · GH₵600 · 🎁 Gift</td></tr>
+        <tr><td>12,001 – 17,500</td><td>GH₵650 · GH₵750 · GH₵850 · 🎁 Gift</td></tr>
+        <tr><td>17,501 – 25,000</td><td>GH₵900 · GH₵1,100 · GH₵1,200 · 🎁 Gift</td></tr>
+        <tr><td>25,001 – 100,000</td><td>GH₵1,500</td></tr>
+        <tr><td>100,001 +</td><td><b>SPECIAL</b></td></tr>
       </tbody>
     </table>
 
@@ -171,7 +171,7 @@ button:disabled{background:linear-gradient(to bottom,#888,#666);box-shadow:0 2px
       <input id="playerName" type="text" placeholder="Your name" aria-describedby="nameDesc">
 
       <label id="amountDesc" style="display:none">Enter amount</label>
-      <input id="amountInput" type="number" placeholder="Amount (€)"
+      <input id="amountInput" type="number" placeholder="Amount (GH₵)"
              aria-describedby="amountDesc" min="1" step="1">
     </div>
   </aside>
@@ -306,7 +306,7 @@ function createBuckets(){
     World.add(engine.world,Bodies.circle(i*bW,CANVAS_HEIGHT-BUCKET_HEIGHT-60,PIN_RADIUS,{isStatic:true,render:{fillStyle:'#e94560'}}));
   }
 
-  /* sensors с логическим индексом */
+  /* Sensors with logical index */
   for(let phys=0; phys<BUCKET_COUNT; phys++){
     const logical=SLOT_ORDER[phys];
     const sensor=Bodies.rectangle(phys*bW+bW/2,CANVAS_HEIGHT-5,bW-8,10,
@@ -315,7 +315,7 @@ function createBuckets(){
     World.add(engine.world,sensor);
   }
 
-  /* подписи призов */
+  /* Prize labels */
   const ctx=render.canvas.getContext('2d');
   Events.on(render,'afterRender',()=>{
     ctx.font='bold 16px Segoe UI'; ctx.textAlign='center'; const lh=18;
@@ -381,7 +381,7 @@ function initGL(){
   gl.linkProgram(prog);
   if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){
     console.error(gl.getProgramInfoLog(prog));
-    prog = null;            // не даём остальному коду упасть
+    prog = null;            // Prevent rest of script from breaking
     return;
   }
 
@@ -422,10 +422,11 @@ function saveScore(name,amount,prize){
 }
 function updateStats(){
   const list = loadScores().sort((a,b)=>parseFloat(b.prize)-parseFloat(a.prize));  const played=localStorage.getItem('plinkoPlayed')||0;
-  let html=`<p>Total games: <b>${played}</b></p><table><thead><tr><th>#</th><th>Name</th><th>Amount (€)</th><th>Prize</th></tr></thead><tbody>`;
+  let html=`<p>Total games: <b>${played}</b></p><table><thead><tr><th>#</th><th>Name</th><th>Amount (GH₵)</th><th>Prize</th></tr></thead><tbody>`;
   list.forEach((r,i)=>{
-    const amountDisp=r.amount!==undefined?`€${r.amount}`:'-';
-    html+=`<tr><td>${i+1}</td><td>${r.name}</td><td>${amountDisp}</td><td>${r.prize}</td></tr>`;
+    const amountDisp=r.amount!==undefined?`GH₵${r.amount}`:'-';
+    const prizeDisp=typeof r.prize==='number'?`GH₵${r.prize}`:r.prize;
+    html+=`<tr><td>${i+1}</td><td>${r.name}</td><td>${amountDisp}</td><td>${prizeDisp}</td></tr>`;
   });
   html+='</tbody></table>'; statsBox.innerHTML=html;
 }
@@ -441,7 +442,8 @@ function createCoins(){
 }
 function showModal(player,prize){
   winnerName.textContent=player;
-  prizeValue.textContent=prize+' 🪙';
+  const prizeText = typeof prize === 'number' ? `GH₵${prize}` : prize;
+  prizeValue.textContent=prizeText+' 🪙';
   createCoins(); modal.classList.add('active');
 }
 const hideModal=()=>{modal.classList.remove('active'); startBtn.disabled=false;};
@@ -468,9 +470,9 @@ function startGame(){
   if(gameActive) return;
   const player=nameInput.value.trim()||'Player';
   const amount=parseFloat(amountInput.value)||0;
-  if(amount<1000){alert('Введите сумму €1000 или выше');return;}
+  if(amount<1000){alert('Please enter an amount of GH₵1,000 or higher');return;}
 
-  /* логический и физический индекс */
+  /* Logical and physical index */
   const logicalIdx=findBucket(amount);
   if(logicalIdx===-1){alert('No bucket for this amount');return;}
   const physIdx=SLOT_ORDER.indexOf(logicalIdx);
